@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FluentAI — English Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-app:     #0d0f1a;
+  --bg-sidebar: #111320;
+  --bg-card:    #181b2c;
+  --bg-input:   #1e2235;
+  --bg-chat:    #181b2c;
+  --teal:       #00d4aa;
+  --teal-dim:   #00a884;
+  --coral:      #ff5e5b;
+  --amber:      #ffc542;
+  --violet:     #7c6af7;
+  --sky:        #38b2f7;
+  --green:      #3dd68c;
+  --txt-bright: #f0f2ff;
+  --txt-main:   #d4d8f0;
+  --txt-muted:  #8890b8;
+  --txt-dim:    #555c80;
+  --border:     #262a42;
+  --border-hi:  #363c5e;
+  --bub-user:   #1a3270;
+  --bub-user-t: #e8f0ff;
+  --bub-ai:     #1d2140;
+  --bub-ai-t:   #d4d8f0;
+  --bub-err:    #1a3b28;
+  --bub-err-t:  #b8ffce;
+  --bub-ref:    #312510;
+  --bub-ref-t:  #ffe0a0;
+  --nav-h:      64px;
+  --radius:     14px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+.light-mode {
+  --bg-app:     #f0f2f8;
+  --bg-sidebar: #ffffff;
+  --bg-card:    #ffffff;
+  --bg-input:   #f5f6fb;
+  --bg-chat:    #eef0f8;
+  --teal:       #00a884;
+  --teal-dim:   #008f72;
+  --coral:      #e0403d;
+  --amber:      #d4920a;
+  --violet:     #5c4ee0;
+  --sky:        #1e8fd8;
+  --green:      #1a9e5a;
+  --txt-bright: #0f1128;
+  --txt-main:   #1e2240;
+  --txt-muted:  #5a6080;
+  --txt-dim:    #9098b8;
+  --border:     #d8dcea;
+  --border-hi:  #bcc2d8;
+  --bub-user:   #1e60d8;
+  --bub-user-t: #ffffff;
+  --bub-ai:     #eef0fa;
+  --bub-ai-t:   #1e2240;
+  --bub-err:    #d4f0df;
+  --bub-err-t:  #0a4020;
+  --bub-ref:    #fff3d0;
+  --bub-ref-t:  #5a3800;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font);
+  background: var(--bg-app);
+  color: var(--txt-main);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ── PAGES ── */
+#app {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  order: 0;
+}
+.page {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  background: var(--bg-app);
+}
+.page.active { display: flex; }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-hi);
+  padding: 14px 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  position: relative;
+}
+.page-header::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--teal);
+}
+.page-header .icon { font-size: 20px; }
+.page-header h1 { font-size: 16px; font-weight: 700; color: var(--txt-bright); }
+.page-header p { font-size: 11px; color: var(--txt-muted); margin-top: 1px; }
+.page-header .hdr-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* ── BOTTOM NAV ── */
+#bottom-nav {
+  height: var(--nav-h);
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-shrink: 0;
+  z-index: 100;
+  order: -1;
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  padding: 8px 4px;
+  transition: all .2s;
+  border: none;
+  background: none;
+  color: var(--txt-dim);
+  position: relative;
+}
+.nav-item .nav-icon { font-size: 19px; transition: transform .2s; }
+.nav-item .nav-label { font-size: 9px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; }
+.nav-item.active { color: var(--teal); }
+.nav-item.active .nav-icon { transform: scale(1.15); }
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 32px; height: 2px;
+  background: var(--teal);
+  border-radius: 4px 4px 0 0;
+}
+
+/* ── THEME TOGGLE ── */
+#theme-toggle {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--border);
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+#theme-toggle:active { background: var(--teal); }
+
+/* ── CHAT PAGE ── */
+#chat-topic-bar {
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+#chat-topic-input {
+  flex: 1;
+  min-width: 140px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  color: var(--txt-main);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 7px 11px;
+  outline: none;
+  transition: border-color .2s;
+}
+#chat-topic-input:focus { border-color: var(--teal); }
+#chat-topic-input::placeholder { color: var(--txt-dim); }
+
+.chat-action-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity .15s, transform .1s;
+  color: #fff;
+}
+.chat-action-btn:active { opacity: .75; transform: scale(.93); }
+.chat-action-btn.btn-teal  { background: #00c49a; color: #fff; }
+.chat-action-btn.btn-green { background: #00a884; color: #fff; }
+.chat-action-btn.btn-violet{ background: #7c6af7; color: #fff; }
+.chat-action-btn.btn-amber { background: #ffc542; color: #1a1000; }
+.chat-action-btn.btn-dim   { background: #555c80; color: #fff; }
+.chat-action-btn.btn-sky   { background: #38b2f7; color: #fff; }
+.chat-action-btn.btn-brown { background: #7c5c3a; color: #fff; }
+.chat-action-btn.btn-orange { background: #f97316; color: #fff; }
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn:active { opacity: .8; transform: scale(.97); }
+.btn-teal    { background: var(--teal); color: #0d0f1a; }
+.btn-violet  { background: var(--violet); color: #fff; }
+.btn-coral   { background: var(--coral); color: #fff; }
+.btn-dim     { background: var(--border-hi); color: var(--txt-muted); }
+.btn-green   { background: var(--teal-dim); color: #fff; }
+.btn-amber   { background: var(--amber); color: #1a1000; }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0 8px;
+  scroll-behavior: smooth;
+  background: var(--bg-chat);
+}
+#chat-messages::-webkit-scrollbar { width: 3px; }
+#chat-messages::-webkit-scrollbar-track { background: transparent; }
+#chat-messages::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+.chat-divider {
+  text-align: center;
+  padding: 6px 0;
+  position: relative;
+  margin: 4px 20px;
+}
+.chat-divider::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  width: 100%; height: 1px;
+  background: var(--border);
+}
+.chat-divider span {
+  position: relative;
+  background: var(--bg-chat);
+  color: var(--txt-dim);
+  font-size: 10px;
+  padding: 0 8px;
+  font-style: italic;
+}
+
+/* Bubbles */
+.msg-row {
+  display: flex;
+  padding: 4px 10px;
+  gap: 8px;
+  align-items: flex-start;
+  animation: fadeUp .25s ease;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.msg-row.user { flex-direction: row-reverse; }
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  flex-shrink: 0;
+  position: relative;
+}
+.avatar::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--ring);
+  opacity: .6;
+}
+.msg-col { display: flex; flex-direction: column; max-width: 78%; gap: 2px; }
+.msg-row.user .msg-col { align-items: flex-end; }
+.msg-meta { display: flex; gap: 6px; align-items: center; padding: 0 2px; }
+.msg-meta .name { font-size: 10px; font-weight: 700; }
+.msg-meta .time { font-size: 10px; color: var(--txt-dim); }
+.bubble {
+  padding: 10px 13px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: break-word;
+  border: 1px solid var(--border);
+}
+.bubble-user   { background: var(--bub-user); color: var(--bub-user-t); border-radius: 14px 4px 14px 14px; border-color: transparent; }
+.bubble-ai     { background: var(--bub-ai);   color: var(--bub-ai-t);   border-radius: 4px 14px 14px 14px; }
+.bubble-err    { background: var(--bub-err);  color: var(--bub-err-t);  border-radius: 4px 14px 14px 14px; }
+.bubble-ref    { background: var(--bub-ref);  color: var(--bub-ref-t);  border-radius: 4px 14px 14px 14px; }
+.bubble-err .label { font-size: 10px; font-weight: 700; margin-bottom: 4px; opacity: .8; }
+
+/* Thinking dots */
+.thinking-dots { display: flex; gap: 5px; padding: 12px 14px; }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--teal);
+  animation: bounce 1.2s infinite;
+}
+.dot:nth-child(2) { animation-delay: .2s; }
+.dot:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce {
+  0%,60%,100% { transform: translateY(0); opacity: .4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Input area */
+#chat-input-area {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+#msg-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-hi);
+  border-radius: 12px;
+  color: var(--txt-main);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 10px 14px;
+  resize: none;
+  outline: none;
+  max-height: 120px;
+  min-height: 42px;
+  line-height: 1.4;
+  transition: border-color .2s;
+  overflow-y: auto;
+}
+#msg-input:focus { border-color: var(--teal); }
+#msg-input::placeholder { color: var(--txt-dim); }
+#send-btn {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: var(--teal);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: opacity .15s, transform .1s;
+  color: #0d0f1a;
+}
+#send-btn:active { opacity: .8; transform: scale(.92); }
+#send-btn:disabled { opacity: .4; }
+
+/* Welcome screen */
+#welcome-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
+  text-align: center;
+  gap: 12px;
+}
+#welcome-screen .big-icon { font-size: 52px; }
+#welcome-screen h2 { font-size: 22px; font-weight: 700; color: var(--txt-bright); }
+#welcome-screen p { color: var(--txt-muted); font-size: 14px; line-height: 1.6; }
+
+/* ── HISTORY PAGE ── */
+.page-body { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.page-body::-webkit-scrollbar { width: 3px; }
+.page-body::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 14px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.card-header h3 { font-size: 12px; font-weight: 700; color: var(--txt-muted); letter-spacing: .5px; text-transform: uppercase; }
+.card-body { padding: 10px 14px; }
+
+#history-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.history-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-input);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: background .15s;
+  border: 1px solid transparent;
+}
+.history-item:active, .history-item.selected { background: var(--border-hi); border-color: var(--teal); }
+.history-item .hi-name { font-size: 12px; color: var(--txt-main); font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-item .hi-date { font-size: 10px; color: var(--txt-dim); white-space: nowrap; }
+
+#history-preview {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 120px;
+  max-height: 240px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--txt-muted);
+  white-space: pre-wrap;
+  font-family: var(--mono);
+}
+#history-preview::-webkit-scrollbar { width: 3px; }
+#history-preview::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+/* ── TOPICS PAGE ── */
+.chips-grid { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+.chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-hi);
+  color: var(--txt-main);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: var(--font);
+}
+.chip:active { background: var(--teal); color: #0d0f1a; border-color: var(--teal); }
+
+#topics-list { list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 2px; }
+.topic-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-input);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: background .15s;
+  border: 1px solid transparent;
+}
+.topic-item:active, .topic-item.selected { background: var(--border-hi); border-color: var(--teal); }
+.topic-item .ti-name { font-size: 13px; color: var(--txt-main); flex: 1; }
+.topic-del { background: none; border: none; color: var(--coral); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+
+/* ── FORM ELEMENTS ── */
+.input-group { display: flex; flex-direction: column; gap: 6px; }
+.input-group label { font-size: 11px; font-weight: 700; color: var(--txt-muted); text-transform: uppercase; letter-spacing: .4px; }
+.form-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  color: var(--txt-main);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color .2s;
+  width: 100%;
+}
+.form-input:focus { border-color: var(--teal); }
+.form-input::placeholder { color: var(--txt-dim); }
+.form-input[type="password"] { font-family: var(--mono); letter-spacing: 2px; }
+
+textarea.form-input { resize: vertical; min-height: 180px; font-size: 13px; font-family: var(--mono); line-height: 1.6; }
+
+/* ── API KEYS PAGE ── */
+#api-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.api-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-input);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+}
+.api-item.active-key { border-color: var(--green); }
+.api-item .key-preview { flex: 1; font-family: var(--mono); font-size: 12px; color: var(--txt-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.api-item .key-badge {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+.badge-active { background: rgba(61,214,140,.2); color: var(--green); }
+.badge-quota  { background: rgba(255,197,66,.15); color: var(--amber); }
+.badge-err    { background: rgba(255,94,91,.15);  color: var(--coral); }
+.api-del { background: none; border: none; color: var(--coral); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+
+#quota-result {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--txt-muted);
+  min-height: 80px;
+  white-space: pre-wrap;
+}
+.ok-text     { color: var(--green); }
+.warn-text   { color: var(--amber); }
+.err-text    { color: var(--coral); }
+.header-text { color: var(--txt-bright); font-weight: 700; }
+
+/* ── STATUS BAR ── */
+#status-bar {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-input);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--txt-dim);
+  flex-shrink: 0;
+}
+#status-bar.visible { display: flex; }
+#status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--txt-dim);
+}
+#status-dot.ok { background: var(--green); }
+#status-dot.err { background: var(--coral); }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  top: calc(var(--nav-h) + 12px); bottom: auto;
+  left: 50%; transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 13px;
+  color: var(--txt-bright);
+  z-index: 999;
+  pointer-events: none;
+  transition: opacity .3s, transform .3s;
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── MODAL ── */
+#modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.65);
+  z-index: 500;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+#modal-overlay.open { display: flex; }
+#modal-box {
+  background: var(--bg-card);
+  border-radius: 18px 18px 0 0;
+  padding: 20px 18px 28px;
+  width: 100%;
+  max-width: 480px;
+  border-top: 1px solid var(--border-hi);
+  animation: slideUp .3s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+#modal-box h3 { font-size: 16px; font-weight: 700; color: var(--txt-bright); margin-bottom: 14px; }
+.modal-btn-row { display: flex; gap: 8px; margin-top: 16px; }
+.modal-btn-row .btn { flex: 1; justify-content: center; }
+
+/* ── EVALUATE RESULT ── */
+#eval-modal .eval-content {
+  background: var(--bg-input);
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 50vh;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--txt-main);
+  white-space: pre-wrap;
+}
+
+/* Row buttons */
+.row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.row-btns .btn { flex: 1; min-width: 80px; justify-content: center; }
+
+/* Section spacing */
+.section { display: flex; flex-direction: column; gap: 10px; }
+.section-title { font-size: 11px; font-weight: 700; color: var(--txt-muted); text-transform: uppercase; letter-spacing: .5px; }
+
+/* Scrollbar global */
+* { scrollbar-width: thin; scrollbar-color: var(--border-hi) transparent; }
+
+/* Hint banner */
+.hint-banner {
+  background: var(--bg-input);
+  border: 1px solid var(--border-hi);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--txt-muted);
+  line-height: 1.6;
+  display: flex;
+  gap: 8px;
+}
+.hint-banner .hint-icon { font-size: 15px; flex-shrink: 0; }
+
+/* Char counter */
+.char-count { font-size: 10px; color: var(--txt-dim); text-align: right; }
+
+/* Divider */
+hr.divider { border: none; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ── APP ── -->
+<div id="app">
+
+  <!-- CHAT PAGE -->
+  <div id="page-chat" class="page active">
+    <div class="page-header">
+      <span class="icon">💬</span>
+      <div>
+        <h1>Live Conversation</h1>
+        <p id="chat-topic-label">Bắt đầu cuộc trò chuyện mới</p>
+      </div>
+      <div class="hdr-right">
+        <button id="theme-toggle" title="Toggle theme">🌙</button>
+      </div>
+    </div>
+    <div id="chat-topic-bar">
+      <input id="chat-topic-input" type="text" placeholder="Chủ đề…">
+      <button class="chat-action-btn btn-teal" onclick="startChat()" title="Chat mới">▶</button>
+      <button class="chat-action-btn btn-orange" onclick="saveHistory()" title="Lưu & cập nhật file">💾</button>
+      <button class="chat-action-btn btn-violet" onclick="openChangeTopic()" title="Đổi chủ đề">🔀</button>
+      <button class="chat-action-btn btn-amber" onclick="randomTopic()" title="Random topic">🎲</button>
+      <button class="chat-action-btn btn-sky" onclick="openEvaluate()" title="Đánh giá">📊</button>
+    </div>
+    <div id="chat-messages">
+      <div id="welcome-screen">
+        <div class="big-icon">✦</div>
+        <h2>Chào mừng đến FluentAI</h2>
+        <p>Nhấn <strong>▶ Mới</strong> để bắt đầu cuộc trò chuyện<br>hoặc nhập chủ đề ở trên và nhấn Enter</p>
+      </div>
+    </div>
+    <div id="chat-input-area">
+      <textarea id="msg-input" rows="1" placeholder="Nhập tin nhắn…" onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+    <div id="status-bar">
+      <div id="status-dot"></div>
+      <span id="status-text">Ready</span>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div id="page-history" class="page">
+    <div class="page-header">
+      <span class="icon">📚</span>
+      <div>
+        <h1>History</h1>
+        <p>Lịch sử cuộc trò chuyện đã lưu</p>
+      </div>
+      <div class="hdr-right">
+        <button class="btn btn-dim btn-sm" onclick="loadHistoryList()">⟳</button>
+      </div>
+    </div>
+    <div class="page-body" id="history-body">
+      <div class="section">
+        <div class="row-btns">
+          <button class="btn btn-teal" onclick="resumeFromHistory()">▶ Tiếp tục Chat</button>
+          <button class="btn btn-coral btn-sm" onclick="deleteHistory()">🗑 Xóa</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Saved Files</h3>
+          </div>
+          <div class="card-body" style="padding:8px;">
+            <ul id="history-list"><li style="color:var(--txt-dim);font-size:12px;padding:8px;">Chưa có session nào được lưu.</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Preview</div>
+        <pre id="history-preview">Chọn một file ở trên để xem nội dung.</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOPICS PAGE -->
+  <div id="page-topics" class="page">
+    <div class="page-header">
+      <span class="icon">🗂</span>
+      <div><h1>Topics</h1><p>Quản lý chủ đề luyện tập</p></div>
+    </div>
+    <div class="page-body">
+      <div class="card">
+        <div class="card-header"><h3>Thêm Chủ Đề Mới</h3></div>
+        <div class="card-body">
+          <div class="input-group">
+            <input class="form-input" id="topic-input" type="text" placeholder="Nhập tên chủ đề…">
+          </div>
+          <div class="row-btns" style="margin-top:8px;">
+            <button class="btn btn-teal" onclick="addTopic()">+ Thêm</button>
+            <button class="btn btn-green" onclick="saveTopics()">💾 Lưu tất cả</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Danh Sách Topics</h3>
+          <span style="font-size:11px;color:var(--txt-dim)" id="topic-count">0 topics</span>
+        </div>
+        <div class="card-body" style="padding:8px;">
+          <ul id="topics-list"></ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>✨ Gợi Ý</h3></div>
+        <div class="card-body">
+          <div class="chips-grid" id="suggested-chips"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROMPT PAGE -->
+  <div id="page-prompt" class="page">
+    <div class="page-header">
+      <span class="icon">📝</span>
+      <div><h1>System Prompt</h1><p>Tùy chỉnh cách AI dạy bạn</p></div>
+    </div>
+    <div class="page-body">
+      <div class="hint-banner">
+        <span class="hint-icon">💡</span>
+        <span>Prompt được gửi kèm mỗi lần AI trả lời. Dùng từ khóa <strong>Mistakes:</strong> và <strong>Reference:</strong> để AI tự động sửa lỗi tiếng Anh.</span>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Nội Dung Prompt</h3>
+          <span class="char-count" id="prompt-chars">0 ký tự</span>
+        </div>
+        <div class="card-body">
+          <textarea class="form-input" id="prompt-textarea" placeholder="Nhập system prompt tại đây…" oninput="updatePromptChars()"></textarea>
+        </div>
+      </div>
+      <div class="row-btns">
+        <button class="btn btn-green" onclick="savePrompt()">💾 Lưu Prompt</button>
+        <button class="btn btn-coral" onclick="clearPrompt()">🗑 Xóa</button>
+      </div>
+      <div id="prompt-saved-label" style="font-size:12px;color:var(--green);text-align:center;min-height:18px;"></div>
+    </div>
+  </div>
+
+  <!-- API KEYS PAGE -->
+  <div id="page-api" class="page">
+    <div class="page-header">
+      <span class="icon">🔑</span>
+      <div><h1>API Keys</h1><p>Quản lý Gemini API keys</p></div>
+    </div>
+    <div class="page-body">
+      <div class="hint-banner">
+        <span class="hint-icon">ℹ️</span>
+        <span>Lấy API key miễn phí tại: <strong>aistudio.google.com</strong>. Có thể thêm nhiều key để tránh giới hạn quota.</span>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Thêm API Key</h3></div>
+        <div class="card-body">
+          <div class="input-group">
+            <input class="form-input" id="api-input" type="password" placeholder="AIza…">
+          </div>
+          <button class="btn btn-teal" style="margin-top:8px;width:100%;justify-content:center;" onclick="addApiKey()">+ Thêm Key</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Saved Keys</h3>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-dim btn-sm" onclick="selectApiKey()">✔ Dùng</button>
+            <button class="btn btn-coral btn-sm" onclick="deleteApiKey()">🗑</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:8px;">
+          <ul id="api-list"></ul>
+        </div>
+      </div>
+      <div id="api-status" style="font-size:12px;color:var(--txt-muted);padding:4px 2px;">⚠ Chưa có API key nào.</div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Kiểm Tra Quota</h3>
+          <button class="btn btn-violet btn-sm" id="check-btn" onclick="checkAllKeys()">🔍 Check All</button>
+        </div>
+        <div class="card-body" style="padding:8px;">
+          <div id="quota-result">Nhấn "Check All" để kiểm tra quota của tất cả keys.</div>
+        </div>
+      </div>
+
+      <!-- Export Card -->
+      <div style="border:1px solid var(--teal);border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(0,212,170,.05);">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:12px;font-weight:700;color:var(--teal);">📦 Xuất file nhúng API key</span>
+          <span id="export-status" style="font-size:10px;color:var(--txt-dim);">Chỉ chia sẻ với người tin tưởng</span>
+        </div>
+        <button onclick="exportBakedFile()" style="flex-shrink:0;border:none;border-radius:8px;background:var(--teal);color:#0d0f1a;font-family:var(--font);font-weight:700;font-size:12px;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:opacity .15s;">
+          Xuất file ↓
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav id="bottom-nav">
+  <button class="nav-item active" data-page="chat" onclick="showPage('chat')">
+    <span class="nav-icon">💬</span><span class="nav-label">Chat</span>
+  </button>
+  <button class="nav-item" data-page="history" onclick="showPage('history')">
+    <span class="nav-icon">📚</span><span class="nav-label">History</span>
+  </button>
+  <button class="nav-item" data-page="topics" onclick="showPage('topics')">
+    <span class="nav-icon">🗂</span><span class="nav-label">Topics</span>
+  </button>
+  <button class="nav-item" data-page="prompt" onclick="showPage('prompt')">
+    <span class="nav-icon">📝</span><span class="nav-label">Prompt</span>
+  </button>
+  <button class="nav-item" data-page="api" onclick="showPage('api')">
+    <span class="nav-icon">🔑</span><span class="nav-label">API</span>
+  </button>
+</nav>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- MODAL (change topic / confirm) -->
+<div id="modal-overlay" onclick="closeModal()">
+  <div id="modal-box" onclick="event.stopPropagation()">
+    <h3 id="modal-title">Modal</h3>
+    <div id="modal-content"></div>
+    <div class="modal-btn-row" id="modal-btn-row"></div>
+  </div>
+</div>
+
+<!-- EVALUATE MODAL -->
+<div id="eval-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--bg-card);border-radius:18px 18px 0 0;padding:0;width:100%;max-width:480px;border-top:1px solid var(--border-hi);animation:slideUp .3s ease;height:85vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;flex-shrink:0;border-bottom:1px solid var(--border);">
+      <h3 style="font-size:16px;font-weight:700;color:var(--txt-bright);">📊 Đánh Giá Tiếng Anh</h3>
+      <button onclick="document.getElementById('eval-modal').style.display='none'" style="background:none;border:none;color:var(--txt-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="eval-content" style="flex:1;overflow-y:auto;padding:14px 18px;font-size:13px;line-height:1.8;color:var(--txt-main);white-space:pre-wrap;-webkit-overflow-scrolling:touch;"></div>
+    <div style="padding:12px 18px 24px;flex-shrink:0;border-top:1px solid var(--border);">
+      <button class="btn btn-teal" style="width:100%;justify-content:center;" onclick="document.getElementById('eval-modal').style.display='none'">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+const MAX_CONTEXT = 10;
+const MODEL = 'gemini-2.5-flash';
+const DEFAULT_TOPICS = ['Daily life','Family & relationships','Food & cooking','Travel & places','Work & career','Health & fitness','Technology','Movies & music','Education','Current events'];
+const SUGGESTED_TOPICS = [
+  '🏙 City life vs countryside', '✈️ Dream vacation destinations',
+  '🍽 Food culture & recipes',   '🎬 Favourite movies & series',
+  '💼 Career goals & challenges', '📱 Social media & technology',
+  '🌍 Climate change',            '🏋 Health & fitness habits',
+  '📚 Books that changed your life','🎵 Music genres & artists',
+];
+
+let state = {
+  apiKeys: [],
+  currentApiIdx: 0,
+  topics: [...DEFAULT_TOPICS],
+  basePrompt: '',
+  currentTopic: '',
+  turns: [],
+  selectedHistoryKey: null,
+  selectedApiIdx: -1,
+};
+
+// ══════════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════════
+function saveState() {
+  localStorage.setItem('fluent_api_keys', JSON.stringify(state.apiKeys));
+  localStorage.setItem('fluent_api_idx', state.currentApiIdx);
+  localStorage.setItem('fluent_topics', JSON.stringify(state.topics));
+  localStorage.setItem('fluent_prompt', state.basePrompt);
+}
+
+function loadState() {
+  /*BAKE:apiKeys*/try { state.apiKeys = JSON.parse(localStorage.getItem('fluent_api_keys') || '[]'); } catch(e){}/*END*/
+  /*BAKE:apiIdx*/state.currentApiIdx = parseInt(localStorage.getItem('fluent_api_idx') || '0');/*END*/
+  /*BAKE:topics*/state.topics = ["waking up early", "waking up late", "daily schedule", "busy mornings", "evening routine", "weekend mornings", "lazy Sundays", "daily planning", "morning exercise", "drinking tea", "drinking coffee daily", "favorite breakfast", "skipping breakfast", "working from home", "office life", "remote work", "taking short breaks", "after work activities", "evening walks", "night snacks", "sleeping early", "sleeping late", "dreams while sleeping", "favorite pajamas", "cleaning the house", "organizing a room", "home repairs", "buying furniture", "decorating a house", "favorite chair", "favorite room", "living alone", "living with parents", "living with roommates", "apartment life", "small apartments", "big houses", "moving to a new home", "neighborhood life", "friendly neighbors", "noisy neighbors", "shopping at supermarkets", "shopping at markets", "online shopping habits", "buying clothes", "fashion style", "favorite shoes", "wearing uniforms", "shopping discounts", "saving money monthly", "spending habits", "budget planning", "street food culture", "favorite noodles", "favorite rice dish", "favorite soup", "cooking dinner", "cooking mistakes", "learning recipes", "home cooking", "family meals", "eating out", "trying new restaurants", "favorite cafe", "coffee shops", "tea shops", "dessert shops", "favorite snacks", "midnight snacks", "spicy food", "sweet food", "salty food", "healthy diet", "fast food meals", "vegetarian food", "favorite fruit", "favorite vegetables", "favorite drink", "favorite dessert", "ice cream", "summer drinks", "winter food", "barbecue night", "seafood dinner", "cooking for friends", "cooking for family", "food delivery apps", "ordering takeout", "travel planning", "packing luggage", "airport experience", "first flight", "long flights", "traveling by train", "bus journeys", "road trips", "mountain hiking", "beach holidays", "island travel", "city travel", "travel photography", "travel souvenirs", "cheap travel", "luxury travel", "travel mistakes", "travel memories", "favorite country", "dream destination", "travel with family", "travel with friends", "solo travel", "travel safety", "rainy travel days", "sunset at the beach", "sunrise in mountains", "hotel experience", "staying in hostels", "airbnb stays", "local markets abroad", "meeting locals", "learning languages abroad", "culture shock", "technology habits", "using smartphones", "favorite apps", "social media addiction", "scrolling social media", "posting photos", "online videos", "watching youtube", "streaming movies", "binge watching", "favorite streaming app", "video games", "mobile games", "computer games", "gaming with friends", "technology problems", "slow internet", "wifi problems", "smart homes", "smart watches", "electric vehicles", "self driving cars", "future technology", "robots in daily life", "ai assistants", "voice assistants", "virtual reality", "augmented reality", "online meetings", "remote collaboration", "cloud storage", "digital payments", "mobile banking", "online business", "starting a startup", "tech innovation", "tech gadgets", "buying new phones", "upgrading laptops", "learning programming", "learning coding", "cyber security", "online privacy", "password safety", "internet scams", "digital detox", "screen time habits", "internet culture", "viral videos", "future inventions", "childhood memories", "favorite childhood game", "school playground", "favorite teacher", "school subjects", "university majors", "student life", "first job experience", "job interviews", "dream job", "changing careers", "work stress", "teamwork at work", "good managers", "bad bosses", "office meetings", "working overtime", "career goals", "learning new skills", "self improvement", "reading books", "favorite novel", "favorite author", "library visits", "watching movies", "favorite movie genre", "favorite actor", "favorite actress", "music taste", "favorite singer", "favorite band", "live concerts", "playing guitar", "learning piano", "listening to podcasts", "favorite podcast", "watching tv shows", "favorite series", "comedy shows", "drama series", "funny memories", "embarrassing moments", "meeting strangers", "making friends", "old friendships", "best friends", "childhood friends", "family traditions", "family dinners", "family holidays", "raising children", "parenting challenges", "helping parents", "spending time with kids", "childhood dreams", "life lessons", "personal growth", "building confidence", "overcoming fears", "trying new hobbies", "photography hobby", "drawing hobby", "writing journals", "weekend hobbies", "indoor hobbies", "outdoor hobbies", "sports hobbies", "fitness training", "running habit", "cycling hobby", "gym workouts", "yoga practice", "meditation practice", "relaxing music", "stress relief", "mental health", "healthy lifestyle", "work life balance", "volunteer work", "helping strangers", "community service", "charity events", "protecting nature", "planting trees", "recycling habits", "reducing plastic", "climate change", "global warming", "clean energy", "public transportation", "traffic jams", "city pollution", "urban living", "rural life", "village lifestyle", "population growth", "cultural traditions", "traditional festivals", "tet holiday", "christmas holiday", "new year celebrations", "birthday parties", "wedding ceremonies", "family reunions", "learning languages", "speaking english", "studying abroad", "moving abroad", "living overseas", "cultural exchange", "global travel", "international food", "world cultures", "international friendships", "global cooperation", "future jobs", "automation future", "space exploration", "life on mars", "scientific discoveries", "future society", "future cities", "sustainable living", "personal happiness", "finding purpose", "meaning of life"];/*END*/
+  /*BAKE:prompt*/state.basePrompt = "You are Mike and Sara — two friendly native English speakers having a real casual conversation (not teachers, not AI).\n\nThe conversation must feel like two real American friends talking naturally.\n\nNever sound like a teacher, grammar book, or AI assistant.\n\nEnglish reference sentences must sound like natural spoken American English.\n\nUse natural spoken language patterns such as:\n\n• contractions (I'm, don't, it's, we'll, can't, that's, gonna, wanna)\n• fillers (well, um, you know, honestly, let me think, I mean)\n• casual phrases (kind of, I guess, by the way, for sure, no way)\n• phrasal verbs (hang out, pick up, run into, figure out, turn out)\n• light idioms when natural (piece of cake, hang in there, hit the books)\n\nVocabulary must always feel like real daily conversation.\n\nAvoid textbook language or formal English.\n\n--------------------------------------------------------------\n\nYou are Mike and Sara — two friendly native English speakers having a real casual conversation (not teachers, not AI).\n\nGOAL: User translates your Vietnamese sentences into English. You give feedback and continue the conversation.\n\n--------------------------------------------------------------\n\nLOOP (repeat forever):\n\n1. Mike: Say one natural Vietnamese statement related to the topic. No questions.\n\nThe Vietnamese sentence must sound like something a real Vietnamese person would say in casual conversation.\n\nExamples of tone:\n\n• short storytelling\n• daily life comments\n• small observations\n• personal experiences\n\n2. User translates to English.\n\n3. Analyze the translation in Vietnamese.\n\nMistakes:\n\nList briefly:\n\n• grammar errors\n• wrong vocabulary\n• missing articles\n• missing prepositions\n• unnatural phrasing\n\nFor each mistake provide:\n\nerror → short explanation → natural spoken fix.\n\nCorrections must prioritize how Americans actually speak in real conversation, not textbook grammar.\n\nAll explanations must be written in Vietnamese.\n\n4. REFERENCE: — your natural spoken English version of step 1. No explanation.\n\nREFERENCE sentences must sound like real American speech.\n\nPrefer conversational rhythm.\n\nExample style:\n\n\"I was so tired yesterday I just crashed on the couch.\"\n\ninstead of\n\n\"I was extremely tired yesterday so I went to rest.\"\n\nUse contractions whenever possible.\n\n5. Sara: Continue the conversation in Vietnamese reacting naturally to step 4. No explanation.\n\nSara must react emotionally and specifically to what Mike said.\n\nExamples of natural reactions inside English reference:\n\n\"Oh wow.\"\n\"No way.\"\n\"Seriously?\"\n\"That's funny.\"\n\nSara may:\n\n• ask short follow-up reactions\n• share similar experiences\n• add small comments\n\n6. User translates Sara's sentence.\n\n7. Same analysis as step 3.\n\n8. REFERENCE: — natural spoken English of step 5. No explanation.\n\n9. Mike: Continue in Vietnamese from step 8. → back to step 2.\n\nThe conversation must develop naturally like real dialogue.\n\nNever restart topics suddenly.\n\n--------------------------------------------------------------\n\nOUTPUT FORMAT (always exact):\n\nMistakes:\n[error + why + natural fix]\n\nREFERENCE:\n[native English sentence]\n\nMike/Sara:\n[Vietnamese sentence]\n\n--------------------------------------------------------------\n\nCORRECTION RULES:\n\nFix:\n\n• grammar\n• tense\n• missing articles\n• missing prepositions\n• unnatural phrasing\n\nCorrections must prioritize natural American spoken English.\n\nIf the user's sentence is technically correct but unnatural, suggest a more natural spoken version.\n\nAll explanations must be written in Vietnamese.\n\n--------------------------------------------------------------\n\nCONVERSATION RULES:\n\nConversation must feel human and spontaneous.\n\nRules:\n\n• React specifically to what was said\n• Avoid generic filler responses\n• Build logically from previous turns\n• Maintain story continuity\n\nMike and Sara should behave like friends:\n\n• reacting emotionally\n• sharing small personal stories\n• making light jokes\n• remembering previous conversation\n\nTone should feel:\n\nrelaxed\nfriendly\nsometimes humorous\nsometimes reflective\n\n--------------------------------------------------------------\n\nDIFFICULTY PROGRESSION (IMPORTANT):\n\nGradually increase complexity.\n\nStage 1:\nsimple daily-life statements.\n\nStage 2:\nlonger thoughts + simple phrasal verbs.\n\nStage 3:\nidioms + natural spoken expressions.\n\nStage 4:\nstorytelling, humor, emotional reactions.\n\nExamples:\n\n\"I ran into an old friend yesterday.\"\n\n\"I'm kinda burned out from work.\"\n\n\"That meeting turned out way better than I expected.\"\n\n\"I totally forgot about that.\"\n\n--------------------------------------------------------------\n\nNATURAL SPEECH STYLE (CRITICAL):\n\nREFERENCE English sentences must sound spoken.\n\nPrefer:\n\n\"I'm gonna grab some coffee.\"\n\nInstead of:\n\n\"I am going to get some coffee.\"\n\nPrefer:\n\n\"I guess we should head out soon.\"\n\nInstead of:\n\n\"I think we should depart.\"\n\nPrefer shorter conversational rhythm.\n\n--------------------------------------------------------------\n\nREAL CONVERSATION SIMULATION (ULTRA MODE):\n\nTo make the conversation feel real:\n\nMike and Sara may sometimes:\n\n• tell short real-life stories\n• remember earlier parts of the conversation\n• ask natural follow-up reactions\n• make light self-deprecating jokes\n\nExamples:\n\n\"I did something like that once too.\"\n\n\"That reminds me of something that happened to me.\"\n\n\"Oh man, that sounds exhausting.\"\n\n\"Yeah, I've been there.\"\n\nThis keeps the conversation feeling human.\n--------------------------------------------------------------\nSAMPLE (for tone/style reference):\n\n[OPENING — Storytelling / Humor]\nMike: Hey Sarah, you're not going to believe what I did yesterday.\nSarah: Oh no, what happened?\nMike: So I went to the supermarket after work, really hungry. I put bread, eggs, chicken, way too much chocolate in my cart. Get to the checkout — \"That'll be $42.\" I reach for my wallet... nothing.\nSarah: No, you didn't.\nMike: Left it on my kitchen table. I had to stand there in front of everyone and say, \"I'm so sorry, I forgot my wallet.\" Drove 30 minutes home and back. Different cashier when I returned. Had to explain the whole thing again.\nSarah: At least you got your food though.\nMike: Yeah. Now I check three times before leaving. Wallet, keys, phone. Wallet, keys, phone.\n\n[DAILY LIFE — Casual exchange, natural flow]\nSarah: What did you do last weekend?\nMike: Saturday I played basketball with guys from work. Two hours. Completely exhausted after. Almost fell asleep in the shower. Then my sister called — needed help moving furniture.\nSarah: On the same day. Poor Mike.\nMike: She's my sister, so I went. Heavy stuff too. Sunday I did absolutely nothing. Didn't even change out of my pajamas.\nSarah: Sometimes you need those days.\nMike: Absolutely.\n\n[DISASTER STORY — Relatable mishap, building rapport]\nMike: Sarah, you were supposed to tell me your laundry story.\nSarah: Right! So I put all my clothes in the washing machine and forgot to check my pockets. There was a tissue in my jeans. I opened the machine later and... little white pieces everywhere. All over everything. It looked like it snowed inside the machine.\nMike: That's the worst.\nSarah: Took me 30 minutes to pick up every single piece by hand.\nMike: I did something similar — left a pen in my pocket. Blue ink went everywhere. Three shirts, one pair of pants. All ruined.\nSarah: We both learned that lesson the hard way.\n\n[HUMOR — Light, warm, self-deprecating]\nMike: I texted my mom \"I'll bring some foot to dinner\" instead of food. Autocorrect.\nSarah: What foot to dinner??\nMike: She wrote back: \"Are you okay? Should I call you?\" I had to send three messages explaining.\nSarah: I once texted my boss \"I'll be there in 30 minions\" instead of minutes.\nMike: Minions — the little yellow cartoon characters?\nSarah: He sent back a laughing emoji. Lucky me.\n\n[WARMTH — Showing care, connection]\nSarah: How do you stay in touch with old friends?\nMike: I text simple things — \"Hey, thinking of you, we should meet up.\" And sometimes a short call, just 10 or 15 minutes to catch up.\nSarah: Phone calls are nicer sometimes. You can hear how someone's really feeling just from their voice.\nMike: I should call people more often, honestly.\nSarah: Same. It's easy to forget when life gets busy. But friendships are worth making time for.\nMike: Definitely.\n\n[CLOSING — Natural wrap-up]\nMike: I think we should wrap this up.\nSarah: Yeah. This was fun though.\nMike: It always is.\n--------------------------------------------------------------\n🔑 Key Style Notes (for AI reference):\n\nTone: warm, relaxed, natural\nRhythm: short turns, quick back-and-forth\nHumor: light and friendly\nEmpathy: react first, then comment\nRapport: remember earlier conversation\nPacing: story → reaction → shared experience → continuation";/*END*/
+  if (state.currentApiIdx >= state.apiKeys.length) state.currentApiIdx = 0;
+}
+
+// History stored as list of {key, topic, savedAt, turns, evaluation}
+// In-memory history store (survives file reopen when baked)
+/*BAKE:history*/var _bakedHistory = {};/*END*/
+
+function _migrateHistory() {
+  // On load: merge baked history into localStorage so it survives even if file changes
+  var baked = _bakedHistory;
+  if (baked && Object.keys(baked).length) {
+    var lsKeys = [];
+    try { lsKeys = JSON.parse(localStorage.getItem('fluent_history_keys') || '[]'); } catch(e){}
+    var allKeys = Object.keys(baked);
+    allKeys.forEach(function(k) {
+      if (!localStorage.getItem('fluent_hist_' + k)) {
+        localStorage.setItem('fluent_hist_' + k, JSON.stringify(baked[k]));
+      }
+      if (!lsKeys.includes(k)) lsKeys.unshift(k);
+    });
+    localStorage.setItem('fluent_history_keys', JSON.stringify(lsKeys));
+  }
+}
+
+function getHistoryKeys() {
+  try { return JSON.parse(localStorage.getItem('fluent_history_keys') || '[]'); } catch(e){ return []; }
+}
+function saveHistoryKeys(keys) {
+  localStorage.setItem('fluent_history_keys', JSON.stringify(keys));
+}
+function getHistoryItem(key) {
+  try { return JSON.parse(localStorage.getItem('fluent_hist_' + key) || 'null'); } catch(e){ return null; }
+}
+function saveHistoryItem(key, data) {
+  localStorage.setItem('fluent_hist_' + key, JSON.stringify(data));
+  const keys = getHistoryKeys();
+  if (!keys.includes(key)) { keys.unshift(key); saveHistoryKeys(keys); }
+}
+function deleteHistoryItem(key) {
+  localStorage.removeItem('fluent_hist_' + key);
+  const keys = getHistoryKeys().filter(k => k !== key);
+  saveHistoryKeys(keys);
+}
+
+// ══════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector('[data-page="' + page + '"]').classList.add('active');
+  if (page === 'history') loadHistoryList();
+  if (page === 'topics') renderTopics();
+  if (page === 'api') renderApiList();
+}
+
+// ══════════════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════════════
+let isDark = true;
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  isDark = !isDark;
+  document.body.classList.toggle('light-mode', !isDark);
+  document.getElementById('theme-toggle').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('fluent_theme', isDark ? 'dark' : 'light');
+});
+
+// ══════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, duration = 2000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ══════════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════════
+function openModal(title, content, buttons) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-content').innerHTML = content;
+  const btnRow = document.getElementById('modal-btn-row');
+  btnRow.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + b.cls;
+    btn.textContent = b.text;
+    btn.onclick = b.action;
+    btnRow.appendChild(btn);
+  });
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════
+// GEMINI API
+// ══════════════════════════════════════════════════
+function currentApiKey() {
+  if (!state.apiKeys.length) return '';
+  state.currentApiIdx = ((state.currentApiIdx % state.apiKeys.length) + state.apiKeys.length) % state.apiKeys.length;
+  return state.apiKeys[state.currentApiIdx];
+}
+function rotateApi() {
+  if (!state.apiKeys.length) return;
+  state.currentApiIdx = (state.currentApiIdx + 1) % state.apiKeys.length;
+}
+
+async function callGemini(prompt, retries = 0) {
+  const key = currentApiKey();
+  if (!key) return 'Vui lòng thêm API key trong tab API Keys.';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 2048 }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const errMsg = data?.error?.message || `HTTP ${res.status}`;
+      if (res.status === 503 || res.status === 529) {
+        if (retries < 3) {
+          await new Promise(r => setTimeout(r, 1500 * (retries + 1)));
+          return callGemini(prompt, retries + 1);
+        }
+        return `⚠️ Server AI đang quá tải. Vui lòng thử lại sau vài giây!`;
+      }
+      if (res.status === 429 || res.status === 403 || data?.error?.status === 'RESOURCE_EXHAUSTED') {
+        if (retries < state.apiKeys.length - 1) { rotateApi(); return callGemini(prompt, retries + 1); }
+        return `⚠️ Quota hết hoặc key không hợp lệ: ${errMsg}`;
+      }
+      return `❌ Lỗi API (${res.status}): ${errMsg}`;
+    }
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (text && text.trim()) return text.trim();
+    const finishReason = data?.candidates?.[0]?.finishReason;
+    if (finishReason && finishReason !== 'STOP') return `⚠️ AI dừng vì: ${finishReason}`;
+    // Log for debugging
+    console.error('Gemini empty response:', JSON.stringify(data));
+    return '⚠️ AI không trả về nội dung. Thử lại hoặc kiểm tra API key!';
+  } catch(e) {
+    return '❌ Lỗi kết nối: ' + e.message;
+  }
+}
+
+function buildPrompt(userMsg, topic, ctxLines) {
+  const base = (state.basePrompt || '').trim();
+  const ctx = ctxLines.join('\n');
+  return `${base}
+
+Conversation topic: ${topic}
+
+Previous conversation:
+${ctx}
+
+User's translation: ${userMsg}
+
+Continue the loop. Output Mistakes (if any), then REFERENCE, then the next Mike/Sara Vietnamese line. Follow the exact output format.`.trim();
+}
+
+function turnsToContext(turns) {
+  return turns.slice(-MAX_CONTEXT * 2).map(t =>
+    t.role === 'user' ? 'User: ' + t.text : 'AI: ' + t.raw
+  );
+}
+
+// ══════════════════════════════════════════════════
+// AI RESPONSE PARSER
+// ══════════════════════════════════════════════════
+function splitAiResponse(text) {
+  if (!text) return { mistakes: '', ref: '', msg: '' };
+  let t = text.trim()
+    .replace(/REFERENCE:/g, 'Reference:')
+    .replace(/Reference :/g, 'Reference:')
+    .replace(/MISTAKES:/g, 'Mistakes:')
+    .replace(/Mistakes :/g, 'Mistakes:')
+    .replace(/mistakes:/gi, 'Mistakes:')
+    .replace(/reference:/gi, (m) => m === 'Mistakes:' ? m : 'Reference:');
+  // normalize once more cleanly
+  t = t.replace(/Mistakes:/g, 'Mistakes:').replace(/Reference:/g, 'Reference:');
+
+  let mistakes = '', reference = '', aiPart = '';
+  let t2 = t;
+
+  if (t.includes('Mistakes:')) {
+    const [before, after] = t.split('Mistakes:');
+    if (after.includes('Reference:')) {
+      const [m, rest] = after.split('Reference:');
+      mistakes = m.trim();
+      t2 = 'Reference:' + rest;
+    } else {
+      mistakes = after.trim(); t2 = '';
+    }
+  }
+
+  const src = t2 || t;
+  if (src.includes('Reference:')) {
+    const [bef, aft] = src.split('Reference:');
+    const speakerTags = ['Mike:', 'Sara:', 'AI:', 'Assistant:', 'Bot:'];
+    let cutIdx = null;
+    for (const tag of speakerTags) {
+      const idx = aft.indexOf(tag);
+      if (idx !== -1 && (cutIdx === null || idx < cutIdx)) cutIdx = idx;
+    }
+    if (cutIdx !== null) {
+      reference = aft.slice(0, cutIdx).trim();
+      aiPart = aft.slice(cutIdx).trim();
+    } else {
+      reference = aft.trim();
+      aiPart = bef.trim() || t.trim();
+    }
+  } else {
+    aiPart = src.trim();
+  }
+  return { mistakes: mistakes.trim(), ref: reference.trim(), msg: aiPart.trim() };
+}
+
+function detectPersona(text) {
+  const t = text.trim().toLowerCase();
+  if (t.startsWith('mike:')) return 'mike';
+  if (t.startsWith('sara:')) return 'sara';
+  return 'ai';
+}
+
+// ══════════════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════════════
+function setStatusBar(text, type = '') {
+  const bar = document.getElementById('status-bar');
+  const dot = document.getElementById('status-dot');
+  const label = document.getElementById('status-text');
+  bar.classList.add('visible');
+  label.textContent = text;
+  dot.className = type;
+}
+function hideStatusBar() {
+  document.getElementById('status-bar').classList.remove('visible');
+}
+
+function setTopicLabel(topic) {
+  document.getElementById('chat-topic-label').textContent = topic ? `📌 ${topic}` : 'Bắt đầu cuộc trò chuyện mới';
+}
+
+function getMessages() { return document.getElementById('chat-messages'); }
+
+function scrollBottom() {
+  const m = getMessages();
+  setTimeout(() => { m.scrollTop = m.scrollHeight; }, 50);
+}
+
+function addDivider(text, color = '') {
+  const el = document.createElement('div');
+  el.className = 'chat-divider';
+  if (color) el.style.setProperty('--div-color', color);
+  el.innerHTML = `<span style="${color ? 'color:' + color : ''}">${text}</span>`;
+  getMessages().appendChild(el);
+  scrollBottom();
+}
+
+function avatarHtml(persona) {
+  const avatars = {
+    user:     { bg: '#1e8fd8', ring: '#5cc8ff', initials: 'U' },
+    mike:     { bg: '#e04040', ring: '#ff8a88', initials: 'M' },
+    sara:     { bg: '#c850c0', ring: '#e070d8', initials: 'S' },
+    ai:       { bg: '#5c4ee0', ring: '#9d8ff9', initials: 'AI' },
+    mistakes: { bg: '#e04040', ring: '#ff8a88', initials: '✕' },
+    ref:      { bg: '#d4920a', ring: '#ffd87a', initials: 'R' },
+  };
+  const av = avatars[persona] || avatars.ai;
+  return `<div class="avatar" style="background:${av.bg};color:#fff;--ring:${av.ring}">${av.initials}</div>`;
+}
+
+function now() {
+  return new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function addBubbleUser(text) {
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `
+    ${avatarHtml('user')}
+    <div class="msg-col">
+      <div class="msg-meta">
+        <span class="time">${now()}</span>
+        <span class="name" style="color:var(--sky)">Bạn</span>
+      </div>
+      <div class="bubble bubble-user">${escHtml(text)}</div>
+    </div>`;
+  getMessages().appendChild(row);
+  scrollBottom();
+}
+
+function addBubbleAi(text) {
+  const persona = detectPersona(text);
+  const name = persona === 'mike' ? 'Mike' : persona === 'sara' ? 'Sara' : 'AI Tutor';
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+  row.innerHTML = `
+    ${avatarHtml(persona)}
+    <div class="msg-col">
+      <div class="msg-meta">
+        <span class="name" style="color:var(--violet)">${name}</span>
+        <span class="time">${now()}</span>
+      </div>
+      <div class="bubble bubble-ai">${formatMd(escHtml(text))}</div>
+    </div>`;
+  getMessages().appendChild(row);
+  scrollBottom();
+}
+
+function addBubbleMistakes(text) {
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `
+    ${avatarHtml('mistakes')}
+    <div class="msg-col">
+      <div class="msg-meta">
+        <span class="time">${now()}</span>
+        <span class="name" style="color:var(--coral)">✕ Sửa lỗi</span>
+      </div>
+      <div class="bubble bubble-err">
+        <div class="label">MISTAKES</div>
+        ${formatMd(escHtml(text))}
+      </div>
+    </div>`;
+  getMessages().appendChild(row);
+  scrollBottom();
+}
+
+function addBubbleRef(text) {
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+  row.innerHTML = `
+    ${avatarHtml('ref')}
+    <div class="msg-col">
+      <div class="msg-meta">
+        <span class="name" style="color:var(--amber)">📖 Tham khảo</span>
+        <span class="time">${now()}</span>
+      </div>
+      <div class="bubble bubble-ref">${formatMd(escHtml(text))}</div>
+    </div>`;
+  getMessages().appendChild(row);
+  scrollBottom();
+}
+
+function addThinkingBubble() {
+  const row = document.createElement('div');
+  row.id = 'thinking-row';
+  row.className = 'msg-row';
+  row.innerHTML = `
+    ${avatarHtml('ai')}
+    <div class="msg-col">
+      <div class="bubble bubble-ai" style="padding:0">
+        <div class="thinking-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </div>
+    </div>`;
+  getMessages().appendChild(row);
+  scrollBottom();
+}
+
+function removeThinkingBubble() {
+  const el = document.getElementById('thinking-row');
+  if (el) el.remove();
+}
+
+function renderTurn(turn) {
+  if (turn.role === 'user') {
+    addBubbleUser(turn.text);
+  } else {
+    if (turn.mistakes) addBubbleMistakes(turn.mistakes);
+    if (turn.ref) addBubbleRef(turn.ref);
+    if (turn.msg) addBubbleAi(turn.msg);
+  }
+}
+
+function randomTopic() {
+  if (!state.topics.length) { showToast('Chưa có topic!'); return; }
+  const t = state.topics[Math.floor(Math.random() * state.topics.length)];
+  document.getElementById('chat-topic-input').value = t;
+  showToast('🎲 ' + t);
+}
+
+async function startChat() {
+  const custom = document.getElementById('chat-topic-input').value.trim();
+  let topic;
+  if (custom) {
+    topic = custom;
+  } else if (state.topics.length) {
+    topic = state.topics[Math.floor(Math.random() * state.topics.length)];
+  } else {
+    showToast('⚠️ Chưa có topic. Thêm topic ở tab Topics!'); return;
+  }
+  if (!state.apiKeys.length) { showToast('⚠️ Chưa có API key!'); showPage('api'); return; }
+  if (state.turns.length) {
+    openModal('Bắt đầu mới?', '<p style="color:var(--txt-muted);font-size:13px;">Chat hiện tại sẽ bị xóa. Tiếp tục?</p>', [
+      { text: 'Hủy', cls: 'btn-dim', action: closeModal },
+      { text: 'Tiếp tục', cls: 'btn-teal', action: () => { closeModal(); doStartChat(topic); } },
+    ]);
+    return;
+  }
+  doStartChat(topic);
+}
+
+async function doStartChat(topic) {
+  state.turns = [];
+  state.currentTopic = topic;
+  const msgs = getMessages();
+  msgs.innerHTML = '';
+  setTopicLabel(topic);
+  addDivider(`Phiên mới · ${topic} · ${now()}`, 'var(--teal)');
+
+  const base = (state.basePrompt || '').trim();
+  const p = `${base}
+
+Conversation topic: ${topic}
+
+BEGIN NOW. Follow the format exactly. Start with Mike saying one natural Vietnamese sentence about the topic (not a question). Output only Mike's line.`;
+  addThinkingBubble();
+  setStatusBar('AI đang suy nghĩ…');
+  const reply = await callGemini(p);
+  removeThinkingBubble();
+  hideStatusBar();
+
+  const parsed = splitAiResponse(reply);
+  const turn = { role: 'ai', raw: reply, ...parsed };
+  state.turns.push(turn);
+  renderTurn(turn);
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (!state.apiKeys.length) { showToast('⚠️ Chưa có API key!'); showPage('api'); return; }
+
+  // If no topic yet, start a new chat first (don't lose user message)
+  if (!state.currentTopic) {
+    input.value = '';
+    input.style.height = 'auto';
+    await doStartChatThenSend(msg);
+    return;
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  await doSendMessage(msg);
+}
+
+async function doStartChatThenSend(pendingMsg) {
+  const custom = document.getElementById('chat-topic-input').value.trim();
+  let topic;
+  if (custom) {
+    topic = custom;
+  } else if (state.topics.length) {
+    topic = state.topics[Math.floor(Math.random() * state.topics.length)];
+  } else {
+    showToast('⚠️ Chưa có topic!'); return;
+  }
+  await doStartChat(topic);
+  // After AI opens, now send user's message
+  await doSendMessage(pendingMsg);
+}
+
+async function doSendMessage(msg) {
+  const userTurn = { role: 'user', text: msg };
+  state.turns.push(userTurn);
+  addBubbleUser(msg);
+
+  addThinkingBubble();
+  setStatusBar('AI đang trả lời…');
+  document.getElementById('send-btn').disabled = true;
+
+  const ctx = turnsToContext(state.turns);
+  const prompt = buildPrompt(msg, state.currentTopic, ctx);
+  const reply = await callGemini(prompt);
+  removeThinkingBubble();
+  hideStatusBar();
+  document.getElementById('send-btn').disabled = false;
+
+  const parsed = splitAiResponse(reply);
+  const aiTurn = { role: 'ai', raw: reply, ...parsed };
+  state.turns.push(aiTurn);
+  renderTurn(aiTurn);
+}
+
+function handleInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ══════════════════════════════════════════════════
+// CHANGE TOPIC
+// ══════════════════════════════════════════════════
+function openChangeTopic() {
+  if (!state.turns.length) { showToast('Bắt đầu chat trước!'); return; }
+  const topicSelect = state.topics.map((t,i) => `<option value="${escAttr(t)}">${t}</option>`).join('');
+  openModal('🔀 Đổi Chủ Đề', `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <input class="form-input" id="change-topic-input" type="text" placeholder="Nhập chủ đề mới…" value="">
+      <select class="form-input" id="change-topic-select" onchange="document.getElementById('change-topic-input').value=this.value">
+        <option value="">— Chọn từ danh sách —</option>
+        ${topicSelect}
+      </select>
+    </div>`, [
+    { text: 'Hủy', cls: 'btn-dim', action: closeModal },
+    { text: '✔ Xác nhận', cls: 'btn-teal', action: doChangeTopic },
+  ]);
+}
+
+async function doChangeTopic() {
+  const newTopic = document.getElementById('change-topic-input').value.trim();
+  if (!newTopic) { showToast('Nhập tên chủ đề!'); return; }
+  const oldTopic = state.currentTopic;
+  state.currentTopic = newTopic;
+  setTopicLabel(newTopic);
+  closeModal();
+
+  addDivider(`Chủ đề thay đổi: ${oldTopic} → ${newTopic}`, 'var(--amber)');
+  addThinkingBubble();
+  setStatusBar('AI đang phản hồi…');
+
+  const ctx = turnsToContext(state.turns);
+  const base = (state.basePrompt || '').trim();
+  const p = `${base}
+
+Conversation topic: ${newTopic}
+
+Previous conversation:
+${ctx.join('\n')}
+
+The topic just changed to "${newTopic}". Continue the loop. Start fresh with Mike saying one Vietnamese sentence about the new topic. Output only Mike's line.`;
+  const reply = await callGemini(p);
+  removeThinkingBubble(); hideStatusBar();
+  const parsed = splitAiResponse(reply);
+  const turn = { role: 'ai', raw: reply, ...parsed };
+  state.turns.push(turn);
+  renderTurn(turn);
+}
+
+// ══════════════════════════════════════════════════
+// EVALUATE
+// ══════════════════════════════════════════════════
+async function openEvaluate() {
+  if (!state.turns.length) { showToast('Chưa có nội dung chat!'); return; }
+  const evalModal = document.getElementById('eval-modal');
+  const evalContent = document.getElementById('eval-content');
+  evalContent.textContent = '⏳ AI đang phân tích tiếng Anh của bạn…';
+  evalModal.style.display = 'flex';
+
+  if (!state.apiKeys.length) { evalContent.textContent = 'Chưa có API key.'; return; }
+
+  const lines = state.turns.map(t =>
+    t.role === 'user' ? 'User: ' + t.text : 'AI: ' + t.raw
+  ).join('\n');
+  const prompt = `Analyze the user's English ability based on this conversation.\n\nConversation:\n${lines}\n\nWrite a short evaluation including:\n1. Overall English level\n2. Grammar strengths\n3. Grammar weaknesses\n4. Vocabulary usage\n5. Fluency\n6. Practical suggestions to improve\n7. What the learner should practice next\n\nKeep it short and practical.\nTranslate all evaluation into Vietnamese for the learner.`;
+
+  const result = await callGemini(prompt);
+  evalContent.textContent = result;
+}
+
+// ══════════════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════════════
+async function saveHistory() {
+  if (!state.turns.length) { showToast('Chưa có nội dung để lưu!'); return; }
+  const key = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const data = {
+    key,
+    topic: state.currentTopic,
+    savedAt: new Date().toLocaleString('vi-VN'),
+    turns: state.turns,
+  };
+  saveHistoryItem(key, data);
+  // Auto-bake updated file so history survives on mobile
+  autoExportWithHistory('✅ Đã lưu & cập nhật file!');
+}
+
+function autoExportWithHistory(toastMsg) {
+  // Collect ALL history
+  var histKeys = getHistoryKeys();
+  var histMap = {};
+  histKeys.forEach(function(k) {
+    var item = getHistoryItem(k);
+    if (item) histMap[k] = item;
+  });
+
+  var src = document.documentElement.outerHTML;
+
+  src = src.replace(
+    /\/\*BAKE:apiKeys\*\/[\s\S]*?\/\*END\*\//,
+    '/*BAKE:apiKeys*/state.apiKeys = ' + JSON.stringify(state.apiKeys) + ';/*END*/'
+  );
+  src = src.replace(
+    /\/\*BAKE:apiIdx\*\/[\s\S]*?\/\*END\*\//,
+    '/*BAKE:apiIdx*/state.currentApiIdx = ' + state.currentApiIdx + ';/*END*/'
+  );
+  src = src.replace(
+    /\/\*BAKE:history\*\/[\s\S]*?\/\*END\*\//,
+    '/*BAKE:history*/var _bakedHistory = ' + JSON.stringify(histMap) + ';/*END*/'
+  );
+
+  var blob = new Blob([src], { type: 'text/html' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'FluentAI.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  if (toastMsg) showToast(toastMsg, 3000);
+}
+
+function loadHistoryList() {
+  const keys = getHistoryKeys();
+  const list = document.getElementById('history-list');
+  if (!keys.length) {
+    list.innerHTML = '<li style="color:var(--txt-dim);font-size:12px;padding:8px;">Chưa có session nào được lưu.</li>';
+    return;
+  }
+  list.innerHTML = keys.map(k => {
+    const item = getHistoryItem(k);
+    if (!item) return '';
+    const name = (item.topic || k).slice(0, 40);
+    const date = item.savedAt || k;
+    const sel = state.selectedHistoryKey === k ? ' selected' : '';
+    return `<li class="history-item${sel}" onclick="selectHistory('${k}')" data-key="${k}">
+      <span class="hi-name">📄 ${escHtml(name)}</span>
+      <span class="hi-date">${escHtml(date.slice(0,16))}</span>
+    </li>`;
+  }).join('');
+}
+
+function selectHistory(key) {
+  state.selectedHistoryKey = key;
+  document.querySelectorAll('.history-item').forEach(el => el.classList.remove('selected'));
+  document.querySelector(`.history-item[data-key="${key}"]`)?.classList.add('selected');
+  const item = getHistoryItem(key);
+  if (!item) return;
+  let preview = `Chủ đề: ${item.topic || '(không có)'}\nLưu lúc: ${item.savedAt || ''}\n\n`;
+  item.turns.forEach(t => {
+    if (t.role === 'user') preview += `Bạn: ${t.text}\n\n`;
+    else {
+      if (t.mistakes) preview += `Mistakes: ${t.mistakes}\n`;
+      if (t.ref) preview += `Reference: ${t.ref}\n`;
+      if (t.msg) preview += `AI: ${t.msg}\n\n`;
+    }
+  });
+  if (item.evaluation) preview += `\n──────────────────\nĐÁNH GIÁ AI:\n${item.evaluation}`;
+  document.getElementById('history-preview').textContent = preview;
+}
+
+function deleteHistory() {
+  if (!state.selectedHistoryKey) { showToast('Chọn session để xóa!'); return; }
+  openModal('Xóa Session?', '<p style="color:var(--txt-muted);font-size:13px;">Bạn chắc muốn xóa session này?</p>', [
+    { text: 'Hủy', cls: 'btn-dim', action: closeModal },
+    { text: '🗑 Xóa', cls: 'btn-coral', action: () => {
+      deleteHistoryItem(state.selectedHistoryKey);
+      state.selectedHistoryKey = null;
+      document.getElementById('history-preview').textContent = 'Chọn một file ở trên để xem nội dung.';
+      closeModal();
+      loadHistoryList();
+      showToast('✅ Đã xóa!');
+    }},
+  ]);
+}
+
+async function resumeFromHistory() {
+  if (!state.selectedHistoryKey) { showToast('Chọn session để tiếp tục!'); return; }
+  const item = getHistoryItem(state.selectedHistoryKey);
+  if (!item || !item.turns?.length) { showToast('Session này trống!'); return; }
+
+  if (state.turns.length) {
+    openModal('Tiếp tục Chat?', '<p style="color:var(--txt-muted);font-size:13px;">Chat hiện tại sẽ bị xóa. Tiếp tục?</p>', [
+      { text: 'Hủy', cls: 'btn-dim', action: closeModal },
+      { text: 'Tiếp tục', cls: 'btn-teal', action: () => { closeModal(); doResumeHistory(item); } },
+    ]);
+    return;
+  }
+  doResumeHistory(item);
+}
+
+async function doResumeHistory(item) {
+  state.turns = [...item.turns];
+  state.currentTopic = item.topic || '';
+  showPage('chat');
+  getMessages().innerHTML = '';
+  setTopicLabel(state.currentTopic);
+
+  addDivider(`── Tiếp tục từ session đã lưu ──`);
+  state.turns.forEach(t => renderTurn(t));
+  addDivider(`── Nhập bản dịch của bạn để tiếp tục ──`, 'var(--teal)');
+  // Do NOT auto-call AI — wait for user to type their translation
+}
+
+// ══════════════════════════════════════════════════
+// TOPICS
+// ══════════════════════════════════════════════════
+function pickTopic(topic) {
+  document.getElementById('chat-topic-input').value = topic;
+  showPage('chat');
+  showToast('✅ Đã chọn: ' + topic);
+}
+
+function renderTopics() {
+  const list = document.getElementById('topics-list');
+  list.innerHTML = state.topics.map((t, i) => `
+    <li class="topic-item" data-idx="${i}" onclick="pickTopic('${escAttr(t)}')">
+      <span class="ti-name">${i + 1}. ${escHtml(t)}</span>
+      <button class="topic-del" onclick="event.stopPropagation();deleteTopic(${i})">✕</button>
+    </li>`).join('');
+  document.getElementById('topic-count').textContent = state.topics.length + ' topics';
+
+  const chips = document.getElementById('suggested-chips');
+  chips.innerHTML = SUGGESTED_TOPICS.map(s => `<div class="chip" onclick="addSuggestedTopic('${escAttr(s)}')">${escHtml(s)}</div>`).join('');
+}
+
+function addTopic() {
+  const input = document.getElementById('topic-input');
+  const t = input.value.trim();
+  if (!t) return;
+  state.topics.push(t);
+  input.value = '';
+  renderTopics();
+}
+
+function addSuggestedTopic(text) {
+  const clean = text.replace(/^[\u{1F300}-\u{1FFFF}\s]+/u, '').trim();
+  const actual = clean || text;
+  if (!state.topics.includes(actual)) {
+    state.topics.push(actual);
+    saveState();
+    renderTopics();
+    showToast('✅ Đã thêm: ' + actual);
+  } else {
+    showToast('Chủ đề này đã có rồi!');
+  }
+}
+
+function deleteTopic(idx) {
+  state.topics.splice(idx, 1);
+  renderTopics();
+}
+
+function saveTopics() {
+  saveState();
+  showToast('✅ Đã lưu topics!');
+}
+
+// ══════════════════════════════════════════════════
+// PROMPT
+// ══════════════════════════════════════════════════
+function updatePromptChars() {
+  const n = document.getElementById('prompt-textarea').value.length;
+  document.getElementById('prompt-chars').textContent = n.toLocaleString() + ' ký tự';
+}
+
+function savePrompt() {
+  state.basePrompt = document.getElementById('prompt-textarea').value.trim();
+  saveState();
+  const label = document.getElementById('prompt-saved-label');
+  label.textContent = '✅ Đã lưu lúc ' + now();
+  setTimeout(() => { label.textContent = ''; }, 4000);
+}
+
+function clearPrompt() {
+  document.getElementById('prompt-textarea').value = '';
+  updatePromptChars();
+}
+
+// ══════════════════════════════════════════════════
+// API KEYS
+// ══════════════════════════════════════════════════
+function renderApiList() {
+  const list = document.getElementById('api-list');
+  if (!state.apiKeys.length) {
+    list.innerHTML = '<li style="color:var(--txt-dim);font-size:12px;padding:8px;">Chưa có API key nào.</li>';
+    document.getElementById('api-status').innerHTML = '⚠️ Chưa có API key nào.';
+    document.getElementById('api-status').style.color = 'var(--coral)';
+    return;
+  }
+  list.innerHTML = state.apiKeys.map((k, i) => {
+    const preview = k.slice(0, 10) + '…' + k.slice(-4);
+    const active = i === state.currentApiIdx;
+    return `<li class="api-item${active ? ' active-key' : ''}" data-idx="${i}" onclick="selectApiKey(${i})">
+      <span class="key-preview">#${i+1}  ${preview}</span>
+      ${active ? '<span class="key-badge badge-active">ACTIVE</span>' : ''}
+      <button class="api-del" onclick="event.stopPropagation();deleteApiKey(${i})">✕</button>
+    </li>`;
+  }).join('');
+  document.getElementById('api-status').innerHTML = `✅ Đang dùng key #${state.currentApiIdx + 1} / ${state.apiKeys.length}`;
+  document.getElementById('api-status').style.color = 'var(--green)';
+}
+
+function addApiKey() {
+  const input = document.getElementById('api-input');
+  const key = input.value.trim();
+  if (!key) return;
+  state.apiKeys.push(key);
+  if (state.apiKeys.length === 1) state.currentApiIdx = 0;
+  input.value = '';
+  saveState();
+  renderApiList();
+  showToast('✅ Đã thêm API key!');
+}
+
+function selectApiKey(idx) {
+  if (idx === undefined) {
+    const items = document.querySelectorAll('.api-item');
+    let found = -1;
+    items.forEach(el => { if (el.matches(':focus, .selected')) found = parseInt(el.dataset.idx); });
+    if (found < 0) { showToast('Tap vào key để chọn!'); return; }
+    idx = found;
+  }
+  if (idx >= 0 && idx < state.apiKeys.length) {
+    state.currentApiIdx = idx;
+    saveState();
+    renderApiList();
+    showToast(`✅ Đang dùng key #${idx + 1}`);
+  }
+}
+
+function deleteApiKey(idx) {
+  if (idx === undefined) { showToast('Tap vào key để xóa!'); return; }
+  state.apiKeys.splice(idx, 1);
+  if (state.currentApiIdx >= state.apiKeys.length) state.currentApiIdx = 0;
+  saveState();
+  renderApiList();
+}
+
+async function checkAllKeys() {
+  if (!state.apiKeys.length) { showToast('Chưa có key nào!'); return; }
+  const btn = document.getElementById('check-btn');
+  const result = document.getElementById('quota-result');
+  btn.textContent = '⏳ Đang kiểm tra…';
+  btn.disabled = true;
+  result.innerHTML = `<span class="header-text">Đang kiểm tra ${state.apiKeys.length} key(s)…</span>`;
+
+  const results = [];
+  for (let i = 0; i < state.apiKeys.length; i++) {
+    const key = state.apiKeys[i];
+    const preview = key.slice(0, 10) + '…';
+    const active = i === state.currentApiIdx ? '  ← đang dùng' : '';
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
+      const t0 = Date.now();
+      const res = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({contents:[{parts:[{text:'Reply with one word: OK'}]}]}) });
+      const ms = Date.now() - t0;
+      if (res.ok) {
+        results.push(`<span class="ok-text">  #${i+1}  ${preview.padEnd(14)}  ✅ Active (${ms}ms)${active}</span>`);
+      } else if (res.status === 429) {
+        results.push(`<span class="warn-text">  #${i+1}  ${preview.padEnd(14)}  ⚠️ Quota hết${active}</span>`);
+      } else {
+        results.push(`<span class="err-text">  #${i+1}  ${preview.padEnd(14)}  ❌ Lỗi ${res.status}${active}</span>`);
+      }
+    } catch(e) {
+      results.push(`<span class="err-text">  #${i+1}  ${preview.padEnd(14)}  ❌ Lỗi kết nối${active}</span>`);
+    }
+  }
+
+  result.innerHTML = `<span class="header-text">Kết quả – ${now()}\n──────────────────────────\n</span>` + results.join('\n') + `\n<span class="header-text">──────────────────────────</span>`;
+  btn.textContent = '🔍 Check All';
+  btn.disabled = false;
+}
+
+// ══════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/'/g, '&#39;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+function formatMd(s) {
+  // Bold, italic, newlines
+  return s
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+function exportBakedFile() {
+  if (!state.apiKeys.length) {
+    showToast('⚠️ Chưa có API key!');
+    return;
+  }
+  var histKeys = getHistoryKeys();
+  var nHist = histKeys.length;
+  autoExportWithHistory(null);
+  var status = document.getElementById('export-status');
+  if (status) {
+    status.textContent = '✅ Xuất lúc ' + new Date().toLocaleTimeString('vi-VN') + ' · ' + nHist + ' session';
+    setTimeout(function(){ status.textContent = 'Chỉ chia sẻ với người tin tưởng'; }, 4000);
+  }
+  showToast('✅ Đã xuất: ' + state.apiKeys.length + ' key · ' + nHist + ' lịch sử', 3000);
+}
+
+
+function init() {
+  _migrateHistory();
+  loadState();
+
+  // Theme
+  const savedTheme = localStorage.getItem('fluent_theme');
+  isDark = savedTheme !== 'light';
+  if (!isDark) {
+    document.body.classList.add('light-mode');
+    document.getElementById('theme-toggle').textContent = '☀️';
+  }
+
+  // Hydrate prompt
+  document.getElementById('prompt-textarea').value = state.basePrompt;
+  updatePromptChars();
+
+  // Topic input enter key
+  document.getElementById('topic-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTopic();
+  });
+  document.getElementById('api-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addApiKey();
+  });
+  document.getElementById('chat-topic-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startChat();
+  });
+
+  renderTopics();
+  renderApiList();
+
+  // Show status
+  if (!state.apiKeys.length) {
+    setStatusBar('⚠️ Chưa có API key — vào tab API để thêm', 'err');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
