@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>FluentAI — English Trainer v6.3.11</title>
+<title>FluentAI — English Trainer v8.0</title>
 <!-- Fonts: load async, fallback to system fonts if offline -->
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -331,11 +331,21 @@ body {
   padding: 4px 10px;
   gap: 8px;
   align-items: flex-start;
-  animation: fadeUp .25s ease;
+  transform-origin: 0% 100%;
+  animation: msgPop .38s cubic-bezier(.2,.9,.3,1.15) both;
 }
+.msg-row.user { transform-origin: 100% 100%; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes msgPop {
+  0%   { opacity: 0; transform: translateY(28px) scale(.92); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msg-row { animation: fadeUp .15s ease both; }
 }
 .msg-row.user { flex-direction: row-reverse; }
 .avatar {
@@ -682,7 +692,7 @@ textarea.form-input { resize: vertical; min-height: 180px; font-size: 13px; font
 /* ── TOAST ── */
 #toast {
   position: fixed;
-  top: calc(var(--nav-h) + 12px); bottom: auto;
+  bottom: calc(var(--nav-h) + 84px + env(safe-area-inset-bottom)); top: auto;
   left: 50%; transform: translateX(-50%);
   background: var(--bg-card);
   border: 1px solid var(--border-hi);
@@ -692,13 +702,18 @@ textarea.form-input { resize: vertical; min-height: 180px; font-size: 13px; font
   color: var(--txt-bright);
   z-index: 999;
   pointer-events: none;
-  transition: opacity .3s, transform .3s;
+  transition: opacity .25s, transform .35s cubic-bezier(.2,.9,.3,1.15);
   opacity: 0;
-  transform: translateX(-50%) translateY(10px);
+  transform: translateX(-50%) translateY(40px);
   white-space: nowrap;
+  max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
   box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.ver-badge { margin-top: 14px; background: var(--bg-input); border: 1px solid var(--border-hi); color: var(--txt-muted); border-radius: 999px; padding: 6px 14px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.ver-badge:active { border-color: var(--teal); color: var(--teal); }
+.cl-list { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--txt-main); max-height: 50vh; overflow-y: auto; }
 
 /* ── MODAL ── */
 #modal-overlay {
@@ -709,15 +724,21 @@ textarea.form-input { resize: vertical; min-height: 180px; font-size: 13px; font
   align-items: flex-end;
   justify-content: center;
 }
-#modal-overlay.open { display: flex; }
+#modal-overlay.open { display: flex; animation: ovFade .25s ease both; }
+#modal-overlay.closing { animation: ovFadeOut .22s ease both; }
+#modal-overlay.closing #modal-box { animation: slideDown .22s ease-in both; }
+@keyframes ovFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ovFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes slideDown { from { transform: translateY(0); } to { transform: translateY(100%); } }
+.sheet-handle { width: 38px; height: 4px; border-radius: 2px; background: var(--border-hi); margin: -8px auto 14px; }
 #modal-box {
   background: var(--bg-card);
   border-radius: 18px 18px 0 0;
-  padding: 20px 18px 28px;
+  padding: 20px 18px calc(28px + env(safe-area-inset-bottom));
   width: 100%;
   max-width: 480px;
   border-top: 1px solid var(--border-hi);
-  animation: slideUp .3s ease;
+  animation: slideUp .38s cubic-bezier(.2,.9,.3,1.05) both;
 }
 @keyframes slideUp {
   from { transform: translateY(100%); }
@@ -1036,6 +1057,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); }
         <div class="big-icon">✦</div>
         <h2>Chào mừng đến FluentAI</h2>
         <p>Nhấn <strong>▶ Mới</strong> để bắt đầu cuộc trò chuyện<br>hoặc nhập chủ đề ở trên và nhấn Enter</p>
+        <button id="ver-badge" class="ver-badge" onclick="showChangelog()" title="Có gì mới">v<span class="app-ver"></span> · Có gì mới?</button>
       </div>
     </div>
     <div id="chat-input-area">
@@ -1272,6 +1294,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); }
 <!-- MODAL (change topic / confirm) -->
 <div id="modal-overlay" onclick="closeModal()">
   <div id="modal-box" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
     <h3 id="modal-title">Modal</h3>
     <div id="modal-content"></div>
     <div class="modal-btn-row" id="modal-btn-row"></div>
@@ -1279,15 +1302,15 @@ hr.divider { border: none; border-top: 1px solid var(--border); }
 </div>
 
 <!-- EVALUATE MODAL -->
-<div id="eval-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;align-items:flex-end;justify-content:center;">
-  <div style="background:var(--bg-card);border-radius:18px 18px 0 0;padding:0;width:100%;max-width:480px;border-top:1px solid var(--border-hi);animation:slideUp .3s ease;height:85vh;display:flex;flex-direction:column;">
+<div id="eval-modal" onclick="closeEvalModal()" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;align-items:flex-end;justify-content:center;">
+  <div id="eval-sheet" onclick="event.stopPropagation()" style="background:var(--bg-card);border-radius:18px 18px 0 0;padding:0;width:100%;max-width:480px;border-top:1px solid var(--border-hi);height:85vh;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;flex-shrink:0;border-bottom:1px solid var(--border);">
       <h3 style="font-size:16px;font-weight:700;color:var(--txt-bright);">📊 Đánh Giá Tiếng Anh</h3>
-      <button onclick="document.getElementById('eval-modal').style.display='none'" style="background:none;border:none;color:var(--txt-muted);font-size:20px;cursor:pointer;">✕</button>
+      <button onclick="closeEvalModal()" style="background:none;border:none;color:var(--txt-muted);font-size:20px;cursor:pointer;">✕</button>
     </div>
     <div id="eval-content" style="flex:1;overflow-y:auto;padding:14px 18px;font-size:13px;line-height:1.8;color:var(--txt-main);white-space:pre-wrap;-webkit-overflow-scrolling:touch;"></div>
     <div style="padding:12px 18px 24px;flex-shrink:0;border-top:1px solid var(--border);">
-      <button class="btn btn-teal" style="width:100%;justify-content:center;" onclick="document.getElementById('eval-modal').style.display='none'">Đóng</button>
+      <button class="btn btn-teal" style="width:100%;justify-content:center;" onclick="closeEvalModal()">Đóng</button>
     </div>
   </div>
 </div>
@@ -1338,7 +1361,7 @@ function loadState() {
   /*BAKE:apiKeys*/try { state.apiKeys = JSON.parse(localStorage.getItem('fluent_api_keys') || '[]'); } catch(e){}/*END*/
   /*BAKE:apiIdx*/state.currentApiIdx = parseInt(localStorage.getItem('fluent_api_idx') || '0');/*END*/
   /*BAKE:topics*/state.topics = ["waking up early", "waking up late", "daily schedule", "busy mornings", "evening routine", "weekend mornings", "lazy Sundays", "daily planning", "morning exercise", "drinking tea", "drinking coffee daily", "favorite breakfast", "skipping breakfast", "working from home", "office life", "remote work", "taking short breaks", "after work activities", "evening walks", "night snacks", "sleeping early", "sleeping late", "dreams while sleeping", "favorite pajamas", "cleaning the house", "organizing a room", "home repairs", "buying furniture", "decorating a house", "favorite chair", "favorite room", "living alone", "living with parents", "living with roommates", "apartment life", "small apartments", "big houses", "moving to a new home", "neighborhood life", "friendly neighbors", "noisy neighbors", "shopping at supermarkets", "shopping at markets", "online shopping habits", "buying clothes", "fashion style", "favorite shoes", "wearing uniforms", "shopping discounts", "saving money monthly", "spending habits", "budget planning", "street food culture", "favorite noodles", "favorite rice dish", "favorite soup", "cooking dinner", "cooking mistakes", "learning recipes", "home cooking", "family meals", "eating out", "trying new restaurants", "favorite cafe", "coffee shops", "tea shops", "dessert shops", "favorite snacks", "midnight snacks", "spicy food", "sweet food", "salty food", "healthy diet", "fast food meals", "vegetarian food", "favorite fruit", "favorite vegetables", "favorite drink", "favorite dessert", "ice cream", "summer drinks", "winter food", "barbecue night", "seafood dinner", "cooking for friends", "cooking for family", "food delivery apps", "ordering takeout", "travel planning", "packing luggage", "airport experience", "first flight", "long flights", "traveling by train", "bus journeys", "road trips", "mountain hiking", "beach holidays", "island travel", "city travel", "travel photography", "travel souvenirs", "cheap travel", "luxury travel", "travel mistakes", "travel memories", "favorite country", "dream destination", "travel with family", "travel with friends", "solo travel", "travel safety", "rainy travel days", "sunset at the beach", "sunrise in mountains", "hotel experience", "staying in hostels", "airbnb stays", "local markets abroad", "meeting locals", "learning languages abroad", "culture shock", "technology habits", "using smartphones", "favorite apps", "social media addiction", "scrolling social media", "posting photos", "online videos", "watching youtube", "streaming movies", "binge watching", "favorite streaming app", "video games", "mobile games", "computer games", "gaming with friends", "technology problems", "slow internet", "wifi problems", "smart homes", "smart watches", "electric vehicles", "self driving cars", "future technology", "robots in daily life", "ai assistants", "voice assistants", "virtual reality", "augmented reality", "online meetings", "remote collaboration", "cloud storage", "digital payments", "mobile banking", "online business", "starting a startup", "tech innovation", "tech gadgets", "buying new phones", "upgrading laptops", "learning programming", "learning coding", "cyber security", "online privacy", "password safety", "internet scams", "digital detox", "screen time habits", "internet culture", "viral videos", "future inventions", "childhood memories", "favorite childhood game", "school playground", "favorite teacher", "school subjects", "university majors", "student life", "first job experience", "job interviews", "dream job", "changing careers", "work stress", "teamwork at work", "good managers", "bad bosses", "office meetings", "working overtime", "career goals", "learning new skills", "self improvement", "reading books", "favorite novel", "favorite author", "library visits", "watching movies", "favorite movie genre", "favorite actor", "favorite actress", "music taste", "favorite singer", "favorite band", "live concerts", "playing guitar", "learning piano", "listening to podcasts", "favorite podcast", "watching tv shows", "favorite series", "comedy shows", "drama series", "funny memories", "embarrassing moments", "meeting strangers", "making friends", "old friendships", "best friends", "childhood friends", "family traditions", "family dinners", "family holidays", "raising children", "parenting challenges", "helping parents", "spending time with kids", "childhood dreams", "life lessons", "personal growth", "building confidence", "overcoming fears", "trying new hobbies", "photography hobby", "drawing hobby", "writing journals", "weekend hobbies", "indoor hobbies", "outdoor hobbies", "sports hobbies", "fitness training", "running habit", "cycling hobby", "gym workouts", "yoga practice", "meditation practice", "relaxing music", "stress relief", "mental health", "healthy lifestyle", "work life balance", "volunteer work", "helping strangers", "community service", "charity events", "protecting nature", "planting trees", "recycling habits", "reducing plastic", "climate change", "global warming", "clean energy", "public transportation", "traffic jams", "city pollution", "urban living", "rural life", "village lifestyle", "population growth", "cultural traditions", "traditional festivals", "tet holiday", "christmas holiday", "new year celebrations", "birthday parties", "wedding ceremonies", "family reunions", "learning languages", "speaking english", "studying abroad", "moving abroad", "living overseas", "cultural exchange", "global travel", "international food", "world cultures", "international friendships", "global cooperation", "future jobs", "automation future", "space exploration", "life on mars", "scientific discoveries", "future society", "future cities", "sustainable living", "personal happiness", "finding purpose", "meaning of life"];/*END*/
-  /*BAKE:prompt*/state.basePrompt = "You are Mike and Sara — two friendly native English speakers having a real casual conversation (not teachers, not AI).\n\nThe conversation must feel like two real American friends talking naturally.\n\nNever sound like a teacher, grammar book, or AI assistant.\n\nEnglish reference sentences must sound like natural spoken American English.\n\nUse natural spoken language patterns such as:\n\n• contractions (I'm, don't, it's, we'll, can't, that's, gonna, wanna)\n• fillers (well, um, you know, honestly, let me think, I mean)\n• casual phrases (kind of, I guess, by the way, for sure, no way)\n• phrasal verbs (hang out, pick up, run into, figure out, turn out)\n• light idioms when natural (piece of cake, hang in there, hit the books)\n\nVocabulary must always feel like real daily conversation.\n\nAvoid textbook language or formal English.\n\n--------------------------------------------------------------\n\nYou are Mike and Sara — two friendly native English speakers having a real casual conversation (not teachers, not AI).\n\nGOAL: User translates your Vietnamese sentences into English. You give feedback and continue the conversation.\n\n--------------------------------------------------------------\n\nLOOP (repeat forever):\n\n1. Mike: Say one natural Vietnamese statement related to the topic. No questions.\n\nThe Vietnamese sentence must sound like something a real Vietnamese person would say in casual conversation.\n\nExamples of tone:\n\n• short storytelling\n• daily life comments\n• small observations\n• personal experiences\n\n2. User translates to English.\n\n3. Analyze the translation in Vietnamese.\n\nMistakes:\n\nList briefly:\n\n• grammar errors\n• wrong vocabulary\n• missing articles\n• missing prepositions\n• unnatural phrasing\n\nFor each mistake provide:\n\nerror → short explanation → natural spoken fix.\n\nCorrections must prioritize how Americans actually speak in real conversation, not textbook grammar.\n\nAll explanations must be written in Vietnamese.\n\n4. REFERENCE: — your natural spoken English version of step 1. No explanation.\n\nREFERENCE sentences must sound like real American speech.\n\nPrefer conversational rhythm.\n\nExample style:\n\n\"I was so tired yesterday I just crashed on the couch.\"\n\ninstead of\n\n\"I was extremely tired yesterday so I went to rest.\"\n\nUse contractions whenever possible.\n\n5. Sara: Continue the conversation in Vietnamese reacting naturally to step 4. No explanation.\n\nSara must react emotionally and specifically to what Mike said.\n\nExamples of natural reactions inside English reference:\n\n\"Oh wow.\"\n\"No way.\"\n\"Seriously?\"\n\"That's funny.\"\n\nSara may:\n\n• ask short follow-up reactions\n• share similar experiences\n• add small comments\n\n6. User translates Sara's sentence.\n\n7. Same analysis as step 3.\n\n8. REFERENCE: — natural spoken English of step 5. No explanation.\n\n9. Mike: Continue in Vietnamese from step 8. → back to step 2.\n\nThe conversation must develop naturally like real dialogue.\n\nNever restart topics suddenly.\n\n--------------------------------------------------------------\n\nOUTPUT FORMAT (always exact):\n\nMistakes:\n[error + why + natural fix]\n\nREFERENCE:\n[native English sentence]\n\nMike/Sara:\n[Vietnamese sentence]\n\n--------------------------------------------------------------\n\nCORRECTION RULES:\n\nFix:\n\n• grammar\n• tense\n• missing articles\n• missing prepositions\n• unnatural phrasing\n\nCorrections must prioritize natural American spoken English.\n\nIf the user's sentence is technically correct but unnatural, suggest a more natural spoken version.\n\nAll explanations must be written in Vietnamese.\n\n--------------------------------------------------------------\n\nCONVERSATION RULES:\n\nConversation must feel human and spontaneous.\n\nRules:\n\n• React specifically to what was said\n• Avoid generic filler responses\n• Build logically from previous turns\n• Maintain story continuity\n\nMike and Sara should behave like friends:\n\n• reacting emotionally\n• sharing small personal stories\n• making light jokes\n• remembering previous conversation\n\nTone should feel:\n\nrelaxed\nfriendly\nsometimes humorous\nsometimes reflective\n\n--------------------------------------------------------------\n\nDIFFICULTY PROGRESSION (IMPORTANT):\n\nGradually increase complexity.\n\nStage 1:\nsimple daily-life statements.\n\nStage 2:\nlonger thoughts + simple phrasal verbs.\n\nStage 3:\nidioms + natural spoken expressions.\n\nStage 4:\nstorytelling, humor, emotional reactions.\n\nExamples:\n\n\"I ran into an old friend yesterday.\"\n\n\"I'm kinda burned out from work.\"\n\n\"That meeting turned out way better than I expected.\"\n\n\"I totally forgot about that.\"\n\n--------------------------------------------------------------\n\nNATURAL SPEECH STYLE (CRITICAL):\n\nREFERENCE English sentences must sound spoken.\n\nPrefer:\n\n\"I'm gonna grab some coffee.\"\n\nInstead of:\n\n\"I am going to get some coffee.\"\n\nPrefer:\n\n\"I guess we should head out soon.\"\n\nInstead of:\n\n\"I think we should depart.\"\n\nPrefer shorter conversational rhythm.\n\n--------------------------------------------------------------\n\nREAL CONVERSATION SIMULATION (ULTRA MODE):\n\nTo make the conversation feel real:\n\nMike and Sara may sometimes:\n\n• tell short real-life stories\n• remember earlier parts of the conversation\n• ask natural follow-up reactions\n• make light self-deprecating jokes\n\nExamples:\n\n\"I did something like that once too.\"\n\n\"That reminds me of something that happened to me.\"\n\n\"Oh man, that sounds exhausting.\"\n\n\"Yeah, I've been there.\"\n\nThis keeps the conversation feeling human.\n--------------------------------------------------------------\nSAMPLE (for tone/style reference):\n\n[OPENING — Storytelling / Humor]\nMike: Hey Sarah, you're not going to believe what I did yesterday.\nSarah: Oh no, what happened?\nMike: So I went to the supermarket after work, really hungry. I put bread, eggs, chicken, way too much chocolate in my cart. Get to the checkout — \"That'll be $42.\" I reach for my wallet... nothing.\nSarah: No, you didn't.\nMike: Left it on my kitchen table. I had to stand there in front of everyone and say, \"I'm so sorry, I forgot my wallet.\" Drove 30 minutes home and back. Different cashier when I returned. Had to explain the whole thing again.\nSarah: At least you got your food though.\nMike: Yeah. Now I check three times before leaving. Wallet, keys, phone. Wallet, keys, phone.\n\n[DAILY LIFE — Casual exchange, natural flow]\nSarah: What did you do last weekend?\nMike: Saturday I played basketball with guys from work. Two hours. Completely exhausted after. Almost fell asleep in the shower. Then my sister called — needed help moving furniture.\nSarah: On the same day. Poor Mike.\nMike: She's my sister, so I went. Heavy stuff too. Sunday I did absolutely nothing. Didn't even change out of my pajamas.\nSarah: Sometimes you need those days.\nMike: Absolutely.\n\n[DISASTER STORY — Relatable mishap, building rapport]\nMike: Sarah, you were supposed to tell me your laundry story.\nSarah: Right! So I put all my clothes in the washing machine and forgot to check my pockets. There was a tissue in my jeans. I opened the machine later and... little white pieces everywhere. All over everything. It looked like it snowed inside the machine.\nMike: That's the worst.\nSarah: Took me 30 minutes to pick up every single piece by hand.\nMike: I did something similar — left a pen in my pocket. Blue ink went everywhere. Three shirts, one pair of pants. All ruined.\nSarah: We both learned that lesson the hard way.\n\n[HUMOR — Light, warm, self-deprecating]\nMike: I texted my mom \"I'll bring some foot to dinner\" instead of food. Autocorrect.\nSarah: What foot to dinner??\nMike: She wrote back: \"Are you okay? Should I call you?\" I had to send three messages explaining.\nSarah: I once texted my boss \"I'll be there in 30 minions\" instead of minutes.\nMike: Minions — the little yellow cartoon characters?\nSarah: He sent back a laughing emoji. Lucky me.\n\n[WARMTH — Showing care, connection]\nSarah: How do you stay in touch with old friends?\nMike: I text simple things — \"Hey, thinking of you, we should meet up.\" And sometimes a short call, just 10 or 15 minutes to catch up.\nSarah: Phone calls are nicer sometimes. You can hear how someone's really feeling just from their voice.\nMike: I should call people more often, honestly.\nSarah: Same. It's easy to forget when life gets busy. But friendships are worth making time for.\nMike: Definitely.\n\n[CLOSING — Natural wrap-up]\nMike: I think we should wrap this up.\nSarah: Yeah. This was fun though.\nMike: It always is.\n--------------------------------------------------------------\n🔑 Key Style Notes (for AI reference):\n\nTone: warm, relaxed, natural\nRhythm: short turns, quick back-and-forth\nHumor: light and friendly\nEmpathy: react first, then comment\nRapport: remember earlier conversation\nPacing: story → reaction → shared experience → continuation";/*END*/
+  /*BAKE:prompt*/state.basePrompt = "You are Mike and Sara — two friendly native English speakers having a real casual conversation (not teachers, not AI).\n\nThe conversation must feel like two real American friends talking naturally.\n\nNever sound like a teacher, grammar book, or AI assistant.\n\nEnglish reference sentences must sound like natural spoken American English.\n\nUse natural spoken language patterns such as:\n\n• contractions (I'm, don't, it's, we'll, can't, that's, gonna, wanna)\n• fillers (well, um, you know, honestly, let me think, I mean)\n• casual phrases (kind of, I guess, by the way, for sure, no way)\n• phrasal verbs (hang out, pick up, run into, figure out, turn out)\n• light idioms when natural (piece of cake, hang in there, hit the books)\n\nVocabulary must always feel like real daily conversation.\n\nAvoid textbook language or formal English.\n\n--------------------------------------------------------------\n\nYou are Mike and Sara — two friendly native English speakers having a real casual conversation (not teachers, not AI).\n\nGOAL: User translates your Vietnamese sentences into English. You give feedback and continue the conversation.\n\n--------------------------------------------------------------\n\nLOOP (repeat forever):\n\n1. Mike: Say one natural Vietnamese statement related to the topic. No questions.\n\nThe Vietnamese sentence must sound like something a real Vietnamese person would say in casual conversation.\n\nExamples of tone:\n\n• short storytelling\n• daily life comments\n• small observations\n• personal experiences\n\n2. User translates to English.\n\n3. Analyze the translation in Vietnamese.\n\nMistakes:\n\nList briefly:\n\n• grammar errors\n• wrong vocabulary\n• missing articles\n• missing prepositions\n• unnatural phrasing\n\nFor each mistake provide:\n\nerror → short explanation → natural spoken fix.\n\nCorrections must prioritize how Americans actually speak in real conversation, not textbook grammar.\n\nAll explanations must be written in Vietnamese.\n\n4. REFERENCE: — your natural spoken English version of step 1. No explanation.\n\nREFERENCE sentences must sound like real American speech.\n\nPrefer conversational rhythm.\n\nExample style:\n\n\"I was so tired yesterday I just crashed on the couch.\"\n\ninstead of\n\n\"I was extremely tired yesterday so I went to rest.\"\n\nUse contractions whenever possible.\n\n5. Sara: Continue the conversation in Vietnamese reacting naturally to step 4. No explanation.\n\nSara must react emotionally and specifically to what Mike said.\n\nExamples of natural reactions inside English reference:\n\n\"Oh wow.\"\n\"No way.\"\n\"Seriously?\"\n\"That's funny.\"\n\nSara may:\n\n• ask short follow-up reactions\n• share similar experiences\n• add small comments\n\n6. User translates Sara's sentence.\n\n7. Same analysis as step 3.\n\n8. REFERENCE: — natural spoken English of step 5. No explanation.\n\n9. Mike: Continue in Vietnamese from step 8. → back to step 2.\n\nThe conversation must develop naturally like real dialogue.\n\nNever restart topics suddenly.\n\n--------------------------------------------------------------\n\nOUTPUT FORMAT (always exact):\n\nMistakes:\n[error + why + natural fix]\n\nREFERENCE:\n[native English sentence]\n\nMike/Sara:\n[Vietnamese sentence]\n\n--------------------------------------------------------------\n\nCORRECTION RULES:\n\nFix:\n\n• grammar\n• tense\n• missing articles\n• missing prepositions\n• unnatural phrasing\n\nCorrections must prioritize natural American spoken English.\n\nIf the user's sentence is technically correct but unnatural, suggest a more natural spoken version.\n\nAll explanations must be written in Vietnamese.\n\n--------------------------------------------------------------\n\nCONVERSATION RULES:\n\nConversation must feel human and spontaneous.\n\nRules:\n\n• React specifically to what was said\n• Avoid generic filler responses\n• Build logically from previous turns\n• Maintain story continuity\n\nMike and Sara should behave like friends:\n\n• reacting emotionally\n• sharing small personal stories\n• making light jokes\n• remembering previous conversation\n\nTone should feel:\n\nrelaxed\nfriendly\nsometimes humorous\nsometimes reflective\n\n--------------------------------------------------------------\n\nDIFFICULTY PROGRESSION (IMPORTANT):\n\nGradually increase complexity.\n\nStage 1:\nsimple daily-life statements.\n\nStage 2:\nlonger thoughts + simple phrasal verbs.\n\nStage 3:\nidioms + natural spoken expressions.\n\nStage 4:\nstorytelling, humor, emotional reactions.\n\nExamples:\n\n\"I ran into an old friend yesterday.\"\n\n\"I'm kinda burned out from work.\"\n\n\"That meeting turned out way better than I expected.\"\n\n\"I totally forgot about that.\"\n\n--------------------------------------------------------------\n\nNATURAL SPEECH STYLE (CRITICAL):\n\nREFERENCE English sentences must sound spoken.\n\nPrefer:\n\n\"I'm gonna grab some coffee.\"\n\nInstead of:\n\n\"I am going to get some coffee.\"\n\nPrefer:\n\n\"I guess we should head out soon.\"\n\nInstead of:\n\n\"I think we should depart.\"\n\nPrefer shorter conversational rhythm.\n\n--------------------------------------------------------------\n\nREAL CONVERSATION SIMULATION (ULTRA MODE):\n\nTo make the conversation feel real:\n\nMike and Sara may sometimes:\n\n• tell short real-life stories\n• remember earlier parts of the conversation\n• ask natural follow-up reactions\n• make light self-deprecating jokes\n\nExamples:\n\n\"I did something like that once too.\"\n\n\"That reminds me of something that happened to me.\"\n\n\"Oh man, that sounds exhausting.\"\n\n\"Yeah, I've been there.\"\n\nThis keeps the conversation feeling human.\n--------------------------------------------------------------\nSAMPLE (for tone/style reference):\n\n[OPENING — Storytelling / Humor]\nMike: Hey Sarah, you're not going to believe what I did yesterday.\nSarah: Oh no, what happened?\nMike: So I went to the supermarket after work, really hungry. I put bread, eggs, chicken, way too much chocolate in my cart. Get to the checkout — \"That'll be $42.\" I reach for my wallet... nothing.\nSarah: No, you didn't.\nMike: Left it on my kitchen table. I had to stand there in front of everyone and say, \"I'm so sorry, I forgot my wallet.\" Drove 30 minutes home and back. Different cashier when I returned. Had to explain the whole thing again.\nSarah: At least you got your food though.\nMike: Yeah. Now I check three times before leaving. Wallet, keys, phone. Wallet, keys, phone.\n\n[DAILY LIFE — Casual exchange, natural flow]\nSarah: What did you do last weekend?\nMike: Saturday I played basketball with guys from work. Two hours. Completely exhausted after. Almost fell asleep in the shower. Then my sister called — needed help moving furniture.\nSarah: On the same day. Poor Mike.\nMike: She's my sister, so I went. Heavy stuff too. Sunday I did absolutely nothing. Didn't even change out of my pajamas.\nSarah: Sometimes you need those days.\nMike: Absolutely.\n\n[DISASTER STORY — Relatable mishap, building rapport]\nMike: Sarah, you were supposed to tell me your laundry story.\nSarah: Right! So I put all my clothes in the washing machine and forgot to check my pockets. There was a tissue in my jeans. I opened the machine later and... little white pieces everywhere. All over everything. It looked like it snowed inside the machine.\nMike: That's the worst.\nSarah: Took me 30 minutes to pick up every single piece by hand.\nMike: I did something similar — left a pen in my pocket. Blue ink went everywhere. Three shirts, one pair of pants. All ruined.\nSarah: We both learned that lesson the hard way.\n\n[HUMOR — Light, warm, self-deprecating]\nMike: I texted my mom \"I'll bring some foot to dinner\" instead of food. Autocorrect.\nSarah: What foot to dinner??\nMike: She wrote back: \"Are you okay? Should I call you?\" I had to send three messages explaining.\nSarah: I once texted my boss \"I'll be there in 30 minions\" instead of minutes.\nMike: Minions — the little yellow cartoon characters?\nSarah: He sent back a laughing emoji. Lucky me.\n\n[WARMTH — Showing care, connection]\nSarah: How do you stay in touch with old friends?\nMike: I text simple things — \"Hey, thinking of you, we should meet up.\" And sometimes a short call, just 10 or 15 minutes to catch up.\nSarah: Phone calls are nicer sometimes. You can hear how someone's really feeling just from their voice.\nMike: I should call people more often, honestly.\nSarah: Same. It's easy to forget when life gets busy. But friendships are worth making time for.\nMike: Definitely.\n\n[CLOSING — Natural wrap-up]\nMike: I think we should wrap this up.\nSarah: Yeah. This was fun though.\nMike: It always is.\n--------------------------------------------------------------\n🔑 Key Style Notes (for AI reference):\n\nTone: warm, relaxed, natural\nRhythm: short turns, quick back-and-forth\nHumor: light and friendly\nEmpathy: react first, then comment\nRapport: remember earlier conversation\nPacing: story → reaction → shared experience → continuation\n\n--------------------------------------------------------------\n\nKEEP THE CONVERSATION FRESH (CRITICAL FOR LONG CHATS):\n\nReal friends don't interview each other. Never loop on the same questions.\n\n• Never repeat or rephrase a question or idea that already appeared earlier in the chat.\n• Questions are rare: at most one short question every 3 turns. Prefer statements — stories, opinions, jokes, recommendations, small confessions.\n• Every turn must add NEW information (new event, person, place, feeling or opinion).\n• Every 3–4 turns, bridge naturally to a related subtopic (\"Nhắc mới nhớ…\", \"À mà này…\", \"Chuyện này làm mình nhớ…\") such as family, money, health, friends, work, tech, food, travel, habits, plans, memories, or current events.\n• Rotate between: personal story → opinion → funny mishap → plan/wish → comparison (past vs now) → recommendation → hypothetical.\n• Drifting to a related subject is good and natural; restarting abruptly is not.\n• If the chat gets long, treat it like a long evening with friends: topics evolve, callbacks to earlier moments are welcome, repeats are not.\n";/*END*/
   if (state.currentApiIdx >= state.apiKeys.length) state.currentApiIdx = 0;
   // Capitalize only the first letter of each topic
   state.topics = state.topics.map(t => t.charAt(0).toUpperCase() + t.slice(1));
@@ -1447,6 +1470,26 @@ function showToast(msg, duration = 2000) {
 }
 
 // ══════════════════════════════════════════════════
+// VERSION
+// ══════════════════════════════════════════════════
+const APP_VERSION = '8.0';
+const APP_CHANGELOG = [
+  'Tin nhắn và popup trượt từ dưới lên như app nhắn tin; thông báo nhỏ hiện phía trên ô nhập.',
+  'Hội thoại dài không còn lặp câu hỏi cũ: AI nhận danh sách câu đã dùng và được nhắc mở chủ đề liên quan mới.',
+  'Prompt mặc định có thêm mục "Keep the conversation fresh".',
+  'Phiên bản hiển thị thống nhất ở tiêu đề, màn hình chào, bản in PDF và tên file tải về.'
+];
+function applyVersion() {
+  document.title = 'FluentAI — English Trainer v' + APP_VERSION;
+  document.querySelectorAll('.app-ver').forEach(el => el.textContent = APP_VERSION);
+}
+function showChangelog() {
+  openModal('Có gì mới trong v' + APP_VERSION,
+    '<ul class="cl-list">' + APP_CHANGELOG.map(t => '<li>' + t + '</li>').join('') + '</ul>',
+    [{ text: 'Đóng', cls: 'btn-teal', action: closeModal }]);
+}
+
+// ══════════════════════════════════════════════════
 // MODAL
 // ══════════════════════════════════════════════════
 function openModal(title, content, buttons) {
@@ -1461,10 +1504,15 @@ function openModal(title, content, buttons) {
     btn.onclick = b.action;
     btnRow.appendChild(btn);
   });
-  document.getElementById('modal-overlay').classList.add('open');
+  const _ov = document.getElementById('modal-overlay');
+  _ov.classList.remove('closing');
+  _ov.classList.add('open');
 }
 function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
+  const ov = document.getElementById('modal-overlay');
+  if (!ov.classList.contains('open') || ov.classList.contains('closing')) return;
+  ov.classList.add('closing');
+  setTimeout(() => { ov.classList.remove('open', 'closing'); }, 220);
 }
 
 // ══════════════════════════════════════════════════
@@ -1521,13 +1569,60 @@ async function callGemini(prompt, retries = 0) {
   }
 }
 
+// ── Anti-repetition: keep long chats fresh ──────────────────────
+const FRESH_ANGLES = [
+  'a short personal story or memory from the past (something funny, awkward or touching that happened)',
+  'a strong opinion or a mild complaint about something small, said with humor',
+  'a plan, wish or upcoming event (this weekend, next month, someday)',
+  'a comparison: how things used to be vs. now, or how people do it differently in other places',
+  'a surprising fact, news item or something you just read or saw online',
+  'a funny mishap or "worst/best experience" related to the topic',
+  'a hypothetical ("if I could...", "imagine if...") or a quirky what-if',
+  'a related side-topic that naturally branches off (money, health, friends, family, work, tech, food, travel, habits)',
+  'a small confession, habit or guilty pleasure',
+  'advice or a recommendation (a place, a show, an app, a trick that works)',
+  'a change of scene: something that happened today, right now, or on the way here',
+  'a shared memory involving a third person (a sibling, a coworker, a neighbor, an old friend)'
+];
+function _cleanLine(t) {
+  // keep only the Mike/Sara conversational line from a stored AI turn
+  const m = /(?:^|\n)\s*(?:Mike|Sara|Sarah)\s*:\s*([\s\S]+)$/i.exec(t || '');
+  return (m ? m[1] : (t || '')).replace(/\s+/g, ' ').trim();
+}
+function buildFreshness(turns, topic) {
+  const aiLines = turns.filter(t => t.role === 'ai').map(t => _cleanLine(t.msg || t.raw)).filter(Boolean);
+  const n = aiLines.length;
+  if (n < 3) return '';
+  const older = aiLines.slice(0, Math.max(0, aiLines.length - MAX_CONTEXT));
+  const digest = aiLines.slice(-30).map(l => '- ' + (l.length > 90 ? l.slice(0, 90) + '…' : l)).join('\n');
+  const angle = FRESH_ANGLES[(n * 7 + Math.floor(Math.random() * FRESH_ANGLES.length)) % FRESH_ANGLES.length];
+  // after ~6 exchanges the next line MUST open a new direction; before that, just develop naturally
+  const mustShift = n >= 6 && n % 3 === 0;
+  return `
+ANTI-REPETITION & TOPIC DEVELOPMENT (CRITICAL — overrides any habit of re-asking):
+This chat is already ${n} AI turns long${older.length ? ` (${older.length} earlier turns are no longer shown in full)` : ''}. Lines already used (do NOT repeat, rephrase or re-ask any of these questions or ideas):
+${digest}
+
+Rules for your next Vietnamese line:
+• Never ask a question that was already asked or answered earlier. Never re-ask "what did you do / how was it / do you like it" style questions again.
+• Use at most ONE short question per 3 turns. Prefer statements: a story, an opinion, a reaction + new detail, a joke, a recommendation.
+• Each new line must add NEW information (a new fact, event, person, place, feeling or opinion), not just comment on the previous line.
+• ${mustShift
+    ? 'THIS TURN: open a NEW direction. Naturally bridge from something already said (e.g. "Nhắc mới nhớ…", "À mà này…", "Chuyện này làm mình nhớ…") and move to a related subtopic. Suggested angle: ' + angle + '.'
+    : 'Develop the current thread with a fresh detail. If it starts feeling exhausted, bridge to a related subtopic. Suggested angle if you shift: ' + angle + '.'}
+• Stay loosely connected to the topic "${topic}", but it is fine — and encouraged — to drift to related areas of life like real friends do. Never restart suddenly; always use a natural bridge.
+• Keep difficulty and tone consistent with the rules above.
+`;
+}
+
 function buildPrompt(userMsg, topic, ctxLines) {
   const base = (state.basePrompt || '').trim();
   const ctx = ctxLines.join('\n');
+  const fresh = buildFreshness(state.turns, topic);
   return `${base}
 
 Conversation topic: ${topic}
-
+${fresh}
 Previous conversation:
 ${ctx}
 
@@ -2113,12 +2208,25 @@ The topic just changed to "${newTopic}". Continue the loop. Start fresh with Mik
 // ══════════════════════════════════════════════════
 // EVALUATE
 // ══════════════════════════════════════════════════
+function openEvalSheet() {
+  const m = document.getElementById('eval-modal'), sh = document.getElementById('eval-sheet');
+  m.style.animation = 'ovFade .25s ease both';
+  sh.style.animation = 'slideUp .38s cubic-bezier(.2,.9,.3,1.05) both';
+  m.style.display = 'flex';
+}
+function closeEvalModal() {
+  const m = document.getElementById('eval-modal'), sh = document.getElementById('eval-sheet');
+  if (m.style.display !== 'flex') return;
+  m.style.animation = 'ovFadeOut .22s ease both';
+  sh.style.animation = 'slideDown .22s ease-in both';
+  setTimeout(() => { m.style.display = 'none'; }, 220);
+}
 async function openEvaluate() {
   if (!state.turns.length) { showToast('Chưa có nội dung chat!'); return; }
   const evalModal = document.getElementById('eval-modal');
   const evalContent = document.getElementById('eval-content');
   evalContent.textContent = '⏳ AI đang phân tích tiếng Anh của bạn…';
-  evalModal.style.display = 'flex';
+  openEvalSheet();
 
   if (!state.apiKeys.length) { evalContent.textContent = 'Chưa có API key.'; return; }
 
@@ -2245,7 +2353,7 @@ function autoExportWithHistory(toastMsg) {
   var blob = new Blob([src], { type: 'text/html' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'FluentAI.html';
+  a.download = 'FluentAI_v' + APP_VERSION.replace('.', '_') + '_offline.html';
   a.click();
   URL.revokeObjectURL(a.href);
   if (toastMsg) showToast(toastMsg, 3000);
@@ -3279,7 +3387,7 @@ ${turnsHtml}
 ${summaryHtml}
 
 <div class="footer">
-  <span>FluentAI — English Trainer</span>
+  <span>FluentAI — English Trainer v${APP_VERSION}</span>
   <span>${dateStr}</span>
 </div>
 </body>
@@ -3314,6 +3422,7 @@ function exportBakedFile() {
 function init() {
   _migrateHistory();
   loadState();
+  applyVersion();
 
   // Theme
   const savedTheme = localStorage.getItem('fluent_theme');
